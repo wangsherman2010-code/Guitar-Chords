@@ -261,3 +261,7 @@ details.seq summary { cursor: pointer; color: var(--accent); font-weight: 600; }
   .practicebar .label { display: none; }
   .bpm { min-width: 52px; }
 }
+
+select.inline { width: auto; padding: 5px 8px; }
+.credit { color: var(--muted); font-size: 0.8rem; margin: 4px 4px 12px; }
+.credit a { color: inherit; }

@@ -1,5 +1,5 @@
 // Offline-first service worker. Bump VERSION when files change.
-const VERSION = 'cc-v1';
+const VERSION = 'cc-v2';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'js/app.js', 'js/theory.js', 'js/voicings.js', 'js/render.js', 'js/audio.js', 'js/lessons.js',
@@ -23,6 +23,8 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.open(VERSION).then(async (cache) => {
       const cached = await cache.match(e.request, { ignoreSearch: true });
+      // Guitar samples never change: cache-first, no background refresh.
+      if (cached && e.request.url.includes('/audio/')) return cached;
       const network = fetch(e.request).then((res) => {
         if (res.ok) cache.put(e.request, res.clone());
         return res;

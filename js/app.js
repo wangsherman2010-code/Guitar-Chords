@@ -4,7 +4,7 @@ import {
 } from './theory.js';
 import { familiesFor, buildGroup, groupById, voiceLead, movement, FAMILIES } from './voicings.js';
 import { chordDiagram, fretboard, tab } from './render.js';
-import { strum, arpeggio, intervalDrill, note, Metronome } from './audio.js';
+import { strum, arpeggio, intervalDrill, note, Metronome, INSTRUMENTS, setInstrument, preload } from './audio.js';
 import { LESSONS, PROGRESSIONS } from './lessons.js';
 
 const $ = (s) => document.querySelector(s);
@@ -27,6 +27,7 @@ const defaults = {
   progPreset: 0,
   progGroups: ['b5', 'b4'],
   startFret: 5,
+  instrument: 'electric_guitar_jazz',
 };
 
 let state = { ...defaults };
@@ -90,6 +91,25 @@ function setupStatic() {
 
   document.querySelectorAll('.tabs button').forEach((b) =>
     b.addEventListener('click', () => { set({ tab: b.dataset.tab }, { keepSel: true }); window.scrollTo({ top: 0 }); }));
+
+  // Sound
+  const inst = $('#instrument');
+  for (const i of INSTRUMENTS) {
+    const o = document.createElement('option');
+    o.value = i.id;
+    o.textContent = i.name;
+    inst.append(o);
+  }
+  inst.value = state.instrument;
+  setInstrument(state.instrument);
+  inst.addEventListener('change', () => {
+    state.instrument = inst.value;
+    save();
+    setInstrument(inst.value);
+    preload().then(() => toast('Sound ready'));
+  });
+  // Start downloading the samples on the first tap (browsers need a gesture for audio).
+  window.addEventListener('pointerdown', () => preload(), { once: true });
 
   $('#scaleOverlay').addEventListener('change', (e) => set({ scale: e.target.checked }, { keepSel: true }));
   $('#lefty').addEventListener('change', (e) => set({ lefty: e.target.checked }, { keepSel: true }));
