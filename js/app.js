@@ -664,6 +664,7 @@ function playProgression(mode = 'strum') {
 // ---------------------------------------------------------------------------
 const FINDER_FRETS = 6;
 let finderPick = 0; // which reading labels the dots
+let finderShowMore = false; // show rootless readings
 
 function fitWindow(frets) {
   const used = frets.filter((f) => f !== null && f > 0);
@@ -690,6 +691,7 @@ function setFinderFret(s, f) {
   frets[s] = frets[s] === f ? null : f; // tap the same spot again to clear it
   state.finder = { ...state.finder, frets };
   finderPick = 0;
+  finderShowMore = false;
   save();
   renderFinder();
   if (frets[s] !== null) note([40, 45, 50, 55, 59, 64][s] + frets[s]);
@@ -717,7 +719,10 @@ function setupFinder() {
 function renderFinder() {
   const { frets, start } = state.finder;
   const res = identify(frets);
-  const cands = res.candidates;
+  // Ordinary names first; rootless readings sit behind "Show more names".
+  const plain = res.candidates.filter((c) => !c.rootless);
+  const rootless = res.candidates.filter((c) => c.rootless);
+  const cands = finderShowMore ? [...plain, ...rootless] : plain;
   if (finderPick >= cands.length) finderPick = 0;
   const pick = cands[finderPick];
   const rootPc = pick ? parseNote(pick.root).pc : res.bassPc;
@@ -737,22 +742,29 @@ function renderFinder() {
 
   $('#fWindow').textContent = `Frets ${start}–${start + FINDER_FRETS - 1}`;
   $('#finderBoard').replaceChildren(finderDiagram(frets, start, marks, FINDER_FRETS));
-  $('#finderTab').textContent = tab({ frets });
+
+  // Big name right under the diagram, so it changes as you tap.
+  const big = $('#finderName');
+  const n = res.pcs.length;
+  if (pick) {
+    const tags = [
+      pick.inversion !== 'Root position' && !pick.rootless ? pick.inversion : '',
+      pick.missing.includes('5') ? 'no 5th' : '',
+      pick.rootless ? `rootless, root ${pretty(pick.root)} implied` : '',
+    ].filter(Boolean).join(' · ');
+    big.innerHTML = `<div class="fname">${pretty(candidateName(pick))}</div>
+      <div class="fsub">${pick.quality.name}${tags ? ' · ' + tags : ''}</div>`;
+  } else {
+    big.innerHTML = `<div class="fname muted">${n === 0 ? 'No notes' : n === 1 ? 'Single note' : '?'}</div>
+      <div class="fsub">${n === 0 ? 'Tap the diagram to add notes.' : n === 1 ? 'Add two or more notes to make a chord.'
+        : rootless.length ? 'No ordinary name. See “Show more names” below.' : 'No standard chord name. Try moving or removing a note.'}</div>`;
+  }
 
   const out = $('#finderResult');
   out.replaceChildren();
-  const n = res.pcs.length;
   if (n === 0) {
-    out.innerHTML = '<p class="hint">Tap the diagram to add notes.</p>';
+    out.innerHTML = '<p class="hint">Names appear here once you add notes.</p>';
     return;
-  }
-  if (!cands.length) {
-    const p = document.createElement('p');
-    p.className = 'hint';
-    p.textContent = n === 1
-      ? 'Only one note so far. Add at least two more to make a chord.'
-      : 'No standard chord name for these notes. Try moving or removing a note.';
-    out.append(p);
   }
   cands.forEach((c, i) => {
     const b = document.createElement('button');
@@ -762,7 +774,7 @@ function renderFinder() {
       .filter((t) => !c.missing.includes(t))
       .map((t) => `<span class="deg-${degreeFamily(t)}-text">${pretty(spellDegree(c.root, t))}<small>${degreeLabel(t)}</small></span>`).join(' ');
     const tags = [
-      i === 0 ? '<i class="tag best">Most likely</i>' : '',
+      i === 0 && !c.rootless ? '<i class="tag best">Most likely</i>' : '',
       c.inversion !== 'Root position' && !c.rootless ? `<i class="tag">${c.inversion}</i>` : '',
       c.missing.includes('5') ? '<i class="tag">no 5th</i>' : '',
       c.rootless ? `<i class="tag">rootless: root ${pretty(c.root)} implied</i>` : '',
@@ -772,23 +784,33 @@ function renderFinder() {
     b.addEventListener('click', () => { finderPick = i; renderFinder(); });
     out.append(b);
   });
-  if (pick) {
+  if (rootless.length) {
+    const more = document.createElement('button');
+    more.className = 'link';
+    more.style.margin = '2px 0 8px';
+    more.textContent = finderShowMore
+      ? 'Hide rootless names'
+      : `Show more names (${rootless.length} rootless reading${rootless.length > 1 ? 's' : ''})`;
+    more.addEventListener('click', () => { finderShowMore = !finderShowMore; renderFinder(); });
+    out.append(more);
+  }
+  if (pick && QUALITY_BY_ID[pick.quality.id]) {
     const go = document.createElement('button');
     go.className = 'btn ghost';
-    go.textContent = `Show ${pretty(pick.root + pick.quality.symbol)} on the Chords page`;
+    go.style.display = 'block';
     go.style.marginTop = '8px';
-    const exists = QUALITY_BY_ID[pick.quality.id];
-    if (exists) {
-      go.addEventListener('click', () => { set({ tab: 'chords', root: pick.root, quality: pick.quality.id, hidden: [] }); window.scrollTo({ top: 0 }); });
-      out.append(go);
-    }
+    go.textContent = `Show ${pretty(pick.root + pick.quality.symbol)} on the Chords page`;
+    go.addEventListener('click', () => { set({ tab: 'chords', root: pick.root, quality: pick.quality.id, hidden: [] }); window.scrollTo({ top: 0 }); });
+    out.append(go);
   }
-  const ref = document.createElement('p');
-  ref.className = 'hint';
-  ref.style.marginTop = '10px';
-  ref.innerHTML = `Counting from the lowest note: <b>${degreesFromBass(res.pcs, res.bassPc).map(degreeLabel).join(' · ')}</b>
-    <br>Tap another name above to see the notes labelled for that reading.`;
-  out.append(ref);
+  if (n >= 2) {
+    const ref = document.createElement('p');
+    ref.className = 'hint';
+    ref.style.marginTop = '10px';
+    ref.innerHTML = `Counting from the lowest note: <b>${degreesFromBass(res.pcs, res.bassPc).map(degreeLabel).join(' · ')}</b>
+      <br>Tap another name to see the notes labelled for that reading.`;
+    out.append(ref);
+  }
 }
 
 // ---------------------------------------------------------------------------

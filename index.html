@@ -126,9 +126,11 @@
     <section id="tab-finder" class="tab">
       <div class="card">
         <h3>Chord finder</h3>
-        <p class="hint">Tap a fret to place a note. Each string holds one note, so tapping another fret on that string moves it.
-          Tap a note to remove it, and tap the circle above the nut to play the open string. The app names the chord.
-          Tip: the ✎ button on any chord card opens that shape here.</p>
+        <details class="finfo">
+          <summary>Tap a fret to add a note. Tap it again to remove it. <span class="info" aria-label="More help">ⓘ</span></summary>
+          <p>Each string holds one note, so tapping another fret on that string moves it. Tap the circle above the nut for an
+            open string, and ▲ ▼ to move up and down the neck. The ✎ button on any chord card opens that shape here.</p>
+        </details>
         <div class="finderbar">
           <button id="fUp" class="iconbtn" aria-label="Show lower frets">▲</button>
           <span id="fWindow" class="fwindow">Frets 1–6</span>
@@ -139,10 +141,10 @@
           <button id="fClear" class="btn ghost">Clear</button>
         </div>
         <div id="finderBoard" class="finderboard"></div>
-        <pre id="finderTab" class="tabtext"></pre>
+        <div id="finderName" class="findername" aria-live="polite"></div>
       </div>
       <div class="card">
-        <h3>Chord name</h3>
+        <h3>All possible names</h3>
         <div id="finderResult"></div>
       </div>
     </section>

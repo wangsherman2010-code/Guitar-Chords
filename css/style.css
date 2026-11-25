@@ -334,7 +334,6 @@ body.bar-collapsed .fab { display: flex; }
 .fdiagram .mute.big { font-size: 22px; fill: var(--muted); font-weight: 700; }
 .fdiagram .offwin { fill: var(--muted); font-size: 12px; font-weight: 700; }
 .dottext.big { font-size: 14px; }
-#finderTab { text-align: left; margin: 8px auto 0; width: max-content; }
 .reading {
   display: block; width: 100%; text-align: left; background: var(--chip); border: 1px solid var(--line);
   border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer;
@@ -348,3 +347,17 @@ body.bar-collapsed .fab { display: flex; }
 .tag { font-style: normal; font-size: 0.74rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--line); color: var(--ink); }
 .tag.best { background: var(--accent); color: var(--accent-ink); }
 .vcard .actions .edit { font-size: 0.95rem; }
+
+.finfo { margin: 0 0 10px; color: var(--muted); font-size: 0.92rem; }
+.finfo summary { cursor: pointer; list-style: none; }
+.finfo summary::-webkit-details-marker { display: none; }
+.finfo .info { color: var(--ink); font-weight: 700; margin-left: 4px; }
+.finfo p { margin: 6px 0 0; }
+.findername { text-align: center; margin-top: 6px; }
+.findername .fname { font-size: 2rem; font-weight: 800; line-height: 1.1; }
+.findername .fname.muted { color: var(--muted); }
+.findername .fsub { color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+@media (max-width: 440px) {
+  .tabs { gap: 0; }
+  .tabs button { padding: 8px 9px 10px; font-size: 0.93rem; }
+}
