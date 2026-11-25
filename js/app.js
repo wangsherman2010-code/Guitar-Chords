@@ -8,6 +8,7 @@ import { identify, candidateName, defaultDegree, degreesFromBass } from './ident
 import { strum, arpeggio, intervalDrill, note, Metronome, INSTRUMENTS, setInstrument, preload, stopAll } from './audio.js';
 import { LESSONS, PROGRESSIONS } from './lessons.js';
 import { PALETTES } from './palettes.js';
+import { Tuner, STRINGS, noteName } from './tuner.js';
 
 const $ = (s) => document.querySelector(s);
 const STORE = 'chord-compass:v1';
@@ -43,8 +44,12 @@ function save() {
   try { localStorage.setItem(STORE, JSON.stringify(state)); } catch { /* ignore */ }
 }
 
+let navigatingBack = false; // true while applying a Back-button step
 function set(patch, { keepSel = false } = {}) {
+  const prevTab = state.tab;
   Object.assign(state, patch);
+  // Each page change becomes a history step, so Android Back returns to the previous page.
+  if (state.tab !== prevTab && !navigatingBack) history.pushState({ tab: state.tab }, '');
   if (!keepSel) selected = null;
   save();
   render();
@@ -814,8 +819,142 @@ function renderFinder() {
 }
 
 // ---------------------------------------------------------------------------
+// Tuner (opened from the logo or the Tuner button; Back closes it)
+// ---------------------------------------------------------------------------
+let tuner = null;
+let tunerLock = null; // index of a string chosen by the user, or null for automatic
+const tunedOk = new Set();
+let okSince = 0;
+
+function tunerOpen() { return !$('#tuner').hidden; }
+
+function openTuner() {
+  if (tunerOpen()) return;
+  $('#tuner').hidden = false;
+  history.pushState({ tab: state.tab, tuner: true }, '');
+  renderTunerStrings(null);
+}
+
+function closeTuner({ fromBack = false } = {}) {
+  if (!tunerOpen()) return;
+  stopTuner();
+  $('#tuner').hidden = true;
+  if (!fromBack && history.state && history.state.tuner) history.back();
+}
+
+function stopTuner() {
+  if (tuner) tuner.stop();
+  tuner = null;
+  $('#tStart').textContent = '🎙 Start listening';
+  $('#tStart').classList.remove('on');
+  showReading(null);
+  $('#tMsg').textContent = 'Tap Start, then play one string.';
+}
+
+async function startTuner() {
+  if (tuner) { stopTuner(); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    $('#tMsg').textContent = 'This browser can’t use the microphone here.';
+    return;
+  }
+  tuner = new Tuner(showReading);
+  try {
+    await tuner.start();
+    $('#tStart').textContent = '■ Stop listening';
+    $('#tStart').classList.add('on');
+    $('#tMsg').textContent = 'Play one string…';
+  } catch (e) {
+    tuner = null;
+    $('#tMsg').textContent = e && e.name === 'NotAllowedError'
+      ? 'Microphone permission was blocked. Allow it in your browser’s site settings, then try again.'
+      : 'Couldn’t start the microphone.';
+  }
+}
+
+function renderTunerStrings(targetIdx) {
+  $('#tStrings').replaceChildren(...STRINGS.map((st, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = `${st.name}<small>${st.label.split(' ')[1]}</small>`;
+    if (i === tunerLock) b.classList.add('locked');
+    else if (i === targetIdx) b.classList.add('target');
+    if (tunedOk.has(i)) b.classList.add('done');
+    b.addEventListener('click', () => {
+      tunerLock = tunerLock === i ? null : i;
+      note(st.midi); // reference tone
+      renderTunerStrings(tunerLock ?? targetIdx);
+    });
+    return b;
+  }));
+}
+
+function showReading(r) {
+  const needle = $('#tNeedle');
+  const msg = $('#tMsg');
+  if (!r) {
+    needle.classList.remove('live', 'ok');
+    needle.style.left = '50%';
+    $('#tNote').textContent = '–';
+    $('#tHz').textContent = '';
+    $('#tNote').parentElement.classList.remove('ok');
+    if (tuner) msg.textContent = 'Play one string…';
+    msg.classList.remove('ok');
+    return;
+  }
+  // Target: the locked string, or the nearest open string.
+  let idx = tunerLock;
+  if (idx === null) {
+    idx = 0;
+    STRINGS.forEach((st, i) => { if (Math.abs(r.midi - st.midi) < Math.abs(r.midi - STRINGS[idx].midi)) idx = i; });
+  }
+  const target = STRINGS[idx];
+  const cents = (r.midi - target.midi) * 100;
+  const ok = Math.abs(cents) <= 5;
+  const shown = Math.max(-50, Math.min(50, cents));
+  needle.style.left = `${50 + shown}%`;
+  needle.classList.add('live');
+  needle.classList.toggle('ok', ok);
+  $('#tNote').textContent = noteName(r.midi).replace(/\d+$/, '');
+  $('#tHz').textContent = `${r.freq.toFixed(1)} Hz · ${cents >= 0 ? '+' : ''}${Math.round(cents)} cents · string ${target.name}`;
+  $('#tNote').parentElement.classList.toggle('ok', ok);
+  if (Math.abs(cents) > 300) msg.textContent = `Far from ${target.name}. Check you’re on the right string.`;
+  else if (ok) msg.textContent = `✓ ${target.name} is in tune`;
+  else msg.textContent = cents < 0 ? `Tune up ↑ (${Math.round(-cents)} cents flat)` : `Tune down ↓ (${Math.round(cents)} cents sharp)`;
+  msg.classList.toggle('ok', ok);
+  // Mark a string done after it stays in tune for about half a second.
+  if (ok) {
+    if (!okSince) okSince = performance.now();
+    if (performance.now() - okSince > 500 && !tunedOk.has(idx)) tunedOk.add(idx);
+  } else okSince = 0;
+  renderTunerStrings(idx);
+}
+
+function setupTuner() {
+  $('#logoTuner').addEventListener('click', openTuner);
+  $('#openTuner').addEventListener('click', openTuner);
+  $('#closeTuner').addEventListener('click', () => closeTuner());
+  $('#tuner').addEventListener('click', (e) => { if (e.target.id === 'tuner') closeTuner(); });
+  $('#tStart').addEventListener('click', startTuner);
+  document.addEventListener('visibilitychange', () => { if (document.hidden && tuner) stopTuner(); });
+}
+
+// Android Back / browser back: close the tuner first, otherwise go to the previous page.
+window.addEventListener('popstate', (e) => {
+  if (tunerOpen()) { closeTuner({ fromBack: true }); return; }
+  const tabName = e.state && e.state.tab;
+  if (tabName && tabName !== state.tab) {
+    navigatingBack = true;
+    set({ tab: tabName }, { keepSel: true });
+    navigatingBack = false;
+    window.scrollTo({ top: 0 });
+  }
+});
+
+// ---------------------------------------------------------------------------
 setupStatic();
 setupFinder();
+setupTuner();
+history.replaceState({ tab: state.tab }, '');
 render();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {

@@ -18,8 +18,11 @@
 <body>
   <header class="top">
     <div class="brand">
-      <img src="icons/icon.svg" alt="" width="30" height="30">
+      <button id="logoTuner" class="logobtn" aria-label="Open tuner" title="Tuner">
+        <img src="icons/icon.svg" alt="" width="30" height="30">
+      </button>
       <h1>Chord Compass</h1>
+      <button id="openTuner" class="tunerbtn" aria-label="Open tuner">🎙 Tuner</button>
     </div>
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="chords" aria-selected="true">Chords</button>
@@ -201,6 +204,27 @@
   <button id="barOpen" class="fab" aria-label="Show metronome and practice roots" title="Metronome &amp; roots">
     <span class="fabnote">♩</span><span id="fabBpm" class="fabbpm">80</span>
   </button>
+
+  <div id="tuner" class="sheet" role="dialog" aria-modal="true" aria-labelledby="tunerTitle" hidden>
+    <div class="sheetbox">
+      <div class="sheethead">
+        <h2 id="tunerTitle">Tuner</h2>
+        <button id="closeTuner" class="iconbtn" aria-label="Close tuner">✕</button>
+      </div>
+      <div class="tnote"><span id="tNote">–</span><small id="tHz"></small></div>
+      <div class="tmeter" aria-hidden="true">
+        <div class="tzone"></div>
+        <div class="tticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div id="tNeedle" class="tneedle"></div>
+      </div>
+      <div class="tscale"><span>−50</span><span>flat</span><span>0</span><span>sharp</span><span>+50</span></div>
+      <div id="tMsg" class="tmsg">Tap Start, then play one string.</div>
+      <div class="tstrings" id="tStrings"></div>
+      <p class="hint tsmall">Tap a string to hear its reference note and tune to that string only. Tap it again to go back to automatic.
+        Standard tuning, A = 440 Hz.</p>
+      <button id="tStart" class="btn tstart">🎙 Start listening</button>
+    </div>
+  </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script type="module" src="js/app.js"></script>

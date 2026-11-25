@@ -10,6 +10,7 @@ A guitar chord practice app (PWA) for jazz guitar. Pick a root and a chord type 
   - *5 template shapes (C-A-G-E-D):* changed automatically to fit the selected chord type (from *Chords on Command*, series 6)
   - **Chord-quality cycle:** maj7 → 7 → m7 → m7♭5 → °7 from the same root and inversion
 - **Sound:** recorded guitar samples (clean jazz electric, nylon-string or steel-string), played with a natural strum and a little room reverb. Strum or arpeggiate any shape. "Hear intervals" plays the root together with each chord tone.
+- **Tuner:** tap the logo or the Tuner button. Uses the microphone, picks the nearest string automatically (or tap a string to lock it and hear its reference note), and shows a needle with tune up/down and ✓ in tune (±5 cents).
 - **Chord finder:** tap frets to build or edit a shape (tap a note again to remove it) and see every name it could have, e.g. C6 or Am7/C, including inversions, missing 5ths and rootless readings. The ✎ button on any chord card opens that shape here.
 - **Voice leading:** type a progression (e.g. `Dm7 G7 Cmaj7`) and the app picks voicings with the smallest movement. Presets include Autumn Leaves, Blue Bossa, F blues and rhythm changes.
 - **Practice tab:** presets for the exercises in both books.
