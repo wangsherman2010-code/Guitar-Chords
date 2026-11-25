@@ -315,3 +315,36 @@ body.bar-collapsed .fab { display: flex; }
   display: inline-grid; place-items: center; border: 1px solid var(--line); color: var(--muted); }
 .strip i.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn.stop { background: var(--root); color: #fff; }
+
+/* ---------- chord finder ---------- */
+.finderbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.fwindow { font-weight: 700; font-size: 0.9rem; min-width: 84px; text-align: center; }
+.finderboard { display: flex; justify-content: center; }
+.fdiagram { width: 100%; max-width: 340px; height: auto; touch-action: manipulation; }
+.fdiagram .fret { stroke: var(--fret); stroke-width: 1.5; }
+.fdiagram .string { stroke: var(--string); stroke-width: 1.4; }
+.fdiagram .nut { fill: var(--ink); }
+.fdiagram .fretnum { fill: var(--muted); font-size: 13px; font-weight: 600; }
+.fdiagram .strname { fill: var(--muted); font-size: 13px; font-weight: 700; }
+.fdiagram .hit { fill: transparent; cursor: pointer; }
+@media (hover: hover) { .fdiagram .hit:hover { fill: color-mix(in srgb, var(--accent) 8%, transparent); } }
+.fdiagram .open { fill: none; stroke-width: 3; }
+.fdiagram .openlabel { font-size: 12px; font-weight: 800; }
+.fdiagram .openhint { fill: none; stroke: var(--line); stroke-dasharray: 3 3; }
+.fdiagram .mute.big { font-size: 22px; fill: var(--muted); font-weight: 700; }
+.fdiagram .offwin { fill: var(--muted); font-size: 12px; font-weight: 700; }
+.dottext.big { font-size: 14px; }
+#finderTab { text-align: left; margin: 8px auto 0; width: max-content; }
+.reading {
+  display: block; width: 100%; text-align: left; background: var(--chip); border: 1px solid var(--line);
+  border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer;
+}
+.reading[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; background: var(--card); }
+.reading .rname { font-size: 1.35rem; font-weight: 800; }
+.reading .rsub { color: var(--muted); font-size: 0.85rem; }
+.reading .rnotes { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; font-weight: 700; }
+.reading .rnotes small { font-size: 0.72rem; margin-left: 2px; opacity: 0.9; }
+.reading .rtags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.tag { font-style: normal; font-size: 0.74rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--line); color: var(--ink); }
+.tag.best { background: var(--accent); color: var(--accent-ink); }
+.vcard .actions .edit { font-size: 0.95rem; }

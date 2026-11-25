@@ -149,3 +149,57 @@ export function tab(voicings, { labels = null } = {}) {
   const body = lines.map((l) => l + '|').join('\n');
   return labels ? `${header.trimEnd()}\n${body}` : body;
 }
+
+// ---------------------------------------------------------------------------
+// Editable chord diagram for the Finder (big touch targets).
+// marks[s] = { label, fam } for strings that sound.
+// ---------------------------------------------------------------------------
+export function finderDiagram(frets, start, marks, nFrets = 6) {
+  const gap = 46, fretH = 50, left = 56, top = 64;
+  const W = left * 2 + gap * 5, H = top + fretH * nFrets + 34;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, class: 'fdiagram', role: 'img', 'aria-label': 'Editable chord diagram' });
+  if (start === 1) svg.append(el('rect', { x: left - 2, y: top - 6, width: gap * 5 + 4, height: 6, class: 'nut' }));
+  for (let i = 0; i <= nFrets; i++) svg.append(el('line', { x1: left, x2: left + gap * 5, y1: top + i * fretH, y2: top + i * fretH, class: 'fret' }));
+  for (let i = 0; i < nFrets; i++) {
+    svg.append(el('text', { x: left - 24, y: top + (i + 0.5) * fretH + 5, class: 'fretnum', 'text-anchor': 'end' }, String(start + i)));
+  }
+  for (let s = 0; s < 6; s++) svg.append(el('line', { x1: left + s * gap, x2: left + s * gap, y1: top, y2: top + fretH * nFrets, class: 'string' }));
+  for (let s = 0; s < 6; s++) {
+    const x = left + s * gap;
+    svg.append(el('text', { x, y: top + fretH * nFrets + 24, class: 'strname', 'text-anchor': 'middle' }, STRING_NAMES[s]));
+    // open / muted marker row (tap target)
+    const f = frets[s];
+    const openHit = el('rect', { x: x - gap / 2, y: 4, width: gap, height: top - 12, class: 'hit', 'data-s': s, 'data-f': 0 });
+    svg.append(openHit);
+    if (f === 0) {
+      const m = marks[s];
+      svg.append(el('circle', { cx: x, cy: top - 30, r: 15, class: `open deg-${m.fam}`, 'pointer-events': 'none' }));
+      svg.append(el('text', { x, y: top - 25, class: `openlabel deg-${m.fam}-text`, 'text-anchor': 'middle', 'pointer-events': 'none' }, m.label));
+    } else if (f === null) {
+      svg.append(el('text', { x, y: top - 22, class: 'mute big', 'text-anchor': 'middle', 'pointer-events': 'none' }, '×'));
+    } else {
+      svg.append(el('circle', { cx: x, cy: top - 30, r: 9, class: 'openhint', 'pointer-events': 'none' }));
+    }
+    // fret cells (tap targets)
+    for (let i = 0; i < nFrets; i++) {
+      const fr = start + i;
+      svg.append(el('rect', { x: x - gap / 2, y: top + i * fretH, width: gap, height: fretH, class: 'hit', 'data-s': s, 'data-f': fr }));
+      if (f === fr) {
+        const m = marks[s];
+        const cy = top + (i + 0.5) * fretH;
+        svg.append(el('circle', { cx: x, cy, r: 17, class: `dot deg-${m.fam}`, 'pointer-events': 'none' }));
+        svg.append(el('text', { x, y: cy + 5, class: `dottext big ink-${m.fam}`, 'text-anchor': 'middle', 'pointer-events': 'none' }, m.label));
+      }
+    }
+  }
+  // Note above/below the window: show an arrow so it isn't lost.
+  for (let s = 0; s < 6; s++) {
+    const f = frets[s];
+    if (f && (f < start || f >= start + nFrets)) {
+      const x = left + s * gap;
+      const below = f >= start + nFrets;
+      svg.append(el('text', { x, y: below ? top + fretH * nFrets - 6 : top + 16, class: 'offwin', 'text-anchor': 'middle', 'pointer-events': 'none' }, `${below ? '▼' : '▲'}${f}`));
+    }
+  }
+  return svg;
+}

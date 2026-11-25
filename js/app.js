@@ -1,9 +1,10 @@
 import {
   ROOTS, QUALITIES, QUALITY_BY_ID, CYCLE_QUALITIES, PRACTICE_ROOTS, MAJOR_SCALE,
-  spellChord, chordSymbol, degreeFamily, degreeLabel, parseNote, degreeSemis, parseChordSymbol, voiceTones,
+  spellChord, spellDegree, chordSymbol, degreeFamily, degreeLabel, parseNote, degreeSemis, parseChordSymbol, voiceTones,
 } from './theory.js';
 import { familiesFor, buildGroup, groupById, voiceLead, movement, FAMILIES } from './voicings.js';
-import { chordDiagram, fretboard, tab } from './render.js';
+import { chordDiagram, fretboard, tab, finderDiagram } from './render.js';
+import { identify, candidateName, defaultDegree, degreesFromBass } from './identify.js';
 import { strum, arpeggio, intervalDrill, note, Metronome, INSTRUMENTS, setInstrument, preload, stopAll } from './audio.js';
 import { LESSONS, PROGRESSIONS } from './lessons.js';
 import { PALETTES } from './palettes.js';
@@ -31,6 +32,7 @@ const defaults = {
   instrument: 'electric_guitar_jazz',
   palette: 'jazz',
   barOpen: false,
+  finder: { frets: [null, 3, 2, 0, 1, 0], start: 1 },
 };
 
 let state = { ...defaults };
@@ -259,6 +261,7 @@ function render() {
 
   if (state.tab === 'chords') renderChords();
   if (state.tab === 'lead') renderLead();
+  if (state.tab === 'finder') renderFinder();
 }
 
 function renderChords() {
@@ -331,7 +334,10 @@ function voicingCard(v, root, quality, { title, sub } = {}) {
   const bArp = document.createElement('button');
   bArp.type = 'button'; bArp.textContent = '♪'; bArp.title = 'Arpeggio (low to high)';
   bArp.addEventListener('click', (e) => { e.stopPropagation(); arpeggio(v.pitches); });
-  actions.append(bStrum, bArp);
+  const bEdit = document.createElement('button');
+  bEdit.type = 'button'; bEdit.textContent = '✎'; bEdit.title = 'Edit in Chord finder'; bEdit.className = 'edit';
+  bEdit.addEventListener('click', (e) => { e.stopPropagation(); editInFinder(v); });
+  actions.append(bStrum, bArp, bEdit);
   card.append(t, s, chordDiagram(v, root, state.labels), actions);
   const pick = () => {
     if (root !== state.root || quality.id !== state.quality) {
@@ -569,7 +575,8 @@ function renderLead() {
     const clone = vc.cloneNode(true);
     clone.addEventListener('click', () => strum(v.pitches));
     clone.querySelector('.actions button:first-child').addEventListener('click', (e) => { e.stopPropagation(); strum(v.pitches); });
-    clone.querySelector('.actions button:last-child').addEventListener('click', (e) => { e.stopPropagation(); arpeggio(v.pitches); });
+    clone.querySelector('.actions button:nth-child(2)').addEventListener('click', (e) => { e.stopPropagation(); arpeggio(v.pitches); });
+    clone.querySelector('.actions .edit').addEventListener('click', (e) => { e.stopPropagation(); editInFinder(v); });
     clone.dataset.i = i;
     grid.append(clone);
   });
@@ -653,7 +660,140 @@ function playProgression(mode = 'strum') {
 }
 
 // ---------------------------------------------------------------------------
+// Chord finder: edit a shape, get its name(s)
+// ---------------------------------------------------------------------------
+const FINDER_FRETS = 6;
+let finderPick = 0; // which reading labels the dots
+
+function fitWindow(frets) {
+  const used = frets.filter((f) => f !== null && f > 0);
+  if (!used.length) return 1;
+  const lo = Math.min(...used), hi = Math.max(...used);
+  if (hi <= FINDER_FRETS) return 1;
+  return Math.max(1, Math.min(lo - 1 || 1, 24 - FINDER_FRETS + 1));
+}
+
+function editInFinder(v) {
+  const frets = [...v.frets];
+  state.finder = { frets, start: fitWindow(frets) };
+  finderPick = 0;
+  set({ tab: 'finder' });
+  window.scrollTo({ top: 0 });
+}
+
+function finderPitches() {
+  return state.finder.frets.map((f, s) => (f === null ? null : [40, 45, 50, 55, 59, 64][s] + f)).filter((p) => p !== null);
+}
+
+function setFinderFret(s, f) {
+  const frets = [...state.finder.frets];
+  frets[s] = frets[s] === f ? null : f; // tap the same spot again to clear it
+  state.finder = { ...state.finder, frets };
+  finderPick = 0;
+  save();
+  renderFinder();
+  if (frets[s] !== null) note([40, 45, 50, 55, 59, 64][s] + frets[s]);
+}
+
+function setupFinder() {
+  $('#finderBoard').addEventListener('click', (e) => {
+    const r = e.target.closest('.hit');
+    if (!r) return;
+    setFinderFret(+r.dataset.s, +r.dataset.f);
+  });
+  const move = (d) => {
+    const start = Math.max(1, Math.min(24 - FINDER_FRETS + 1, state.finder.start + d));
+    state.finder = { ...state.finder, start };
+    save();
+    renderFinder();
+  };
+  $('#fUp').addEventListener('click', () => move(-1));
+  $('#fDown').addEventListener('click', () => move(1));
+  $('#fClear').addEventListener('click', () => { state.finder = { frets: Array(6).fill(null), start: state.finder.start }; finderPick = 0; save(); renderFinder(); });
+  $('#fStrum').addEventListener('click', () => { const p = finderPitches(); if (p.length) strum(p); });
+  $('#fArp').addEventListener('click', () => { const p = finderPitches(); if (p.length) arpeggio(p); });
+}
+
+function renderFinder() {
+  const { frets, start } = state.finder;
+  const res = identify(frets);
+  const cands = res.candidates;
+  if (finderPick >= cands.length) finderPick = 0;
+  const pick = cands[finderPick];
+  const rootPc = pick ? parseNote(pick.root).pc : res.bassPc;
+  const rootName = pick ? pick.root : null;
+
+  // Labels for each sounding string
+  const marks = frets.map((f, s) => {
+    if (f === null) return null;
+    const pc = ([40, 45, 50, 55, 59, 64][s] + f) % 12;
+    const tok = pick ? pick.degrees.get(pc) : defaultDegree(rootPc, pc);
+    let label = degreeLabel(tok);
+    if (state.labels === 'note') {
+      label = pick ? pretty(spellDegree(rootName, tok)) : pretty(['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'][pc]);
+    }
+    return { label, fam: degreeFamily(tok) };
+  });
+
+  $('#fWindow').textContent = `Frets ${start}–${start + FINDER_FRETS - 1}`;
+  $('#finderBoard').replaceChildren(finderDiagram(frets, start, marks, FINDER_FRETS));
+  $('#finderTab').textContent = tab({ frets });
+
+  const out = $('#finderResult');
+  out.replaceChildren();
+  const n = res.pcs.length;
+  if (n === 0) {
+    out.innerHTML = '<p class="hint">Tap the diagram to add notes.</p>';
+    return;
+  }
+  if (!cands.length) {
+    const p = document.createElement('p');
+    p.className = 'hint';
+    p.textContent = n === 1
+      ? 'Only one note so far. Add at least two more to make a chord.'
+      : 'No standard chord name for these notes. Try moving or removing a note.';
+    out.append(p);
+  }
+  cands.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'reading';
+    b.setAttribute('aria-pressed', String(i === finderPick));
+    const notes = c.quality.tones
+      .filter((t) => !c.missing.includes(t))
+      .map((t) => `<span class="deg-${degreeFamily(t)}-text">${pretty(spellDegree(c.root, t))}<small>${degreeLabel(t)}</small></span>`).join(' ');
+    const tags = [
+      i === 0 ? '<i class="tag best">Most likely</i>' : '',
+      c.inversion !== 'Root position' && !c.rootless ? `<i class="tag">${c.inversion}</i>` : '',
+      c.missing.includes('5') ? '<i class="tag">no 5th</i>' : '',
+      c.rootless ? `<i class="tag">rootless: root ${pretty(c.root)} implied</i>` : '',
+    ].join('');
+    b.innerHTML = `<div class="rname">${pretty(candidateName(c))}</div>
+      <div class="rsub">${c.quality.name}</div><div class="rnotes">${notes}</div><div class="rtags">${tags}</div>`;
+    b.addEventListener('click', () => { finderPick = i; renderFinder(); });
+    out.append(b);
+  });
+  if (pick) {
+    const go = document.createElement('button');
+    go.className = 'btn ghost';
+    go.textContent = `Show ${pretty(pick.root + pick.quality.symbol)} on the Chords page`;
+    go.style.marginTop = '8px';
+    const exists = QUALITY_BY_ID[pick.quality.id];
+    if (exists) {
+      go.addEventListener('click', () => { set({ tab: 'chords', root: pick.root, quality: pick.quality.id, hidden: [] }); window.scrollTo({ top: 0 }); });
+      out.append(go);
+    }
+  }
+  const ref = document.createElement('p');
+  ref.className = 'hint';
+  ref.style.marginTop = '10px';
+  ref.innerHTML = `Counting from the lowest note: <b>${degreesFromBass(res.pcs, res.bassPc).map(degreeLabel).join(' · ')}</b>
+    <br>Tap another name above to see the notes labelled for that reading.`;
+  out.append(ref);
+}
+
+// ---------------------------------------------------------------------------
 setupStatic();
+setupFinder();
 render();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
