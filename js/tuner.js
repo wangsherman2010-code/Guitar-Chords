@@ -18,12 +18,12 @@ export const noteName = (m) => `${NOTE_NAMES[((Math.round(m) % 12) + 12) % 12]}$
 // Normalised square difference function; returns { freq, clarity } or null.
 // range = { minFreq, maxFreq } narrows the search (used once we know the string),
 // which stops jumps to overtones on the low strings.
-export function detectPitch(buf, sampleRate, range = null) {
+export function detectPitch(buf, sampleRate, range = null, minRms = 0.008) {
   const n = buf.length;
   let rms = 0;
   for (let i = 0; i < n; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / n);
-  if (rms < 0.008) return null; // too quiet
+  if (rms < minRms) return null; // too quiet
 
   const fMax = range ? range.maxFreq : 1100;
   const fMin = range ? range.minFreq : 65;
@@ -96,6 +96,8 @@ export class Tuner {
     this.lockMidi = null; // string chosen by the user
     this.focusMidi = null; // string found automatically
     this.streak = { midi: null, count: 0 };
+    this.prevRms = 0;
+    this.ignoreUntil = 0;
   }
 
   setLock(midi) {
@@ -131,27 +133,45 @@ export class Tuner {
   tick() {
     this.analyser.getFloatTimeDomainData(this.raw);
     decimate2(this.raw, this.buf);
-    const sr = this.ctx.sampleRate / 2;
+    this.process(this.buf, this.ctx.sampleRate / 2, performance.now());
+  }
+
+  // One analysis step (separate from the mic so it can be tested on recordings).
+  process(buf, sr, now) {
+    let rms = 0;
+    for (let i = 0; i < buf.length; i++) rms += buf[i] * buf[i];
+    rms = Math.sqrt(rms / buf.length);
+    // New pluck: a sudden jump in volume. The attack is noisy and briefly sharp,
+    // so skip ~0.2 s and start the average fresh.
+    const onset = rms > 0.004 && rms > this.prevRms * 1.8;
+    this.prevRms = rms;
+    if (onset) {
+      this.ignoreUntil = now + 210;
+      this.history = [];
+      if (this.lockMidi === null) { this.focusMidi = null; this.streak = { midi: null, count: 0 }; }
+    }
+    if (now < this.ignoreUntil) { this.lastHeard = now; return; }
+
     const target = this.lockMidi ?? this.focusMidi;
-    const r = detectPitch(this.buf, sr, target !== null ? rangeAround(target) : null);
-    const now = performance.now();
+    // Low volume gate: the quiet tail of a note is the steadiest part to tune to.
+    const r = detectPitch(buf, sr, target !== null ? rangeAround(target) : null, 0.0015);
     const minClarity = target !== null ? 0.8 : 0.9;
     if (r && r.clarity > minClarity && r.freq > 60 && r.freq < 1100) {
       const midi = freqToMidi(r.freq);
       // Auto mode: after 3 readings on the same string, stay focused on it.
       if (this.lockMidi === null && this.focusMidi === null) {
-        const s = this.nearestString(midi);
-        this.streak = this.streak.midi === s ? { midi: s, count: this.streak.count + 1 } : { midi: s, count: 1 };
-        if (this.streak.count >= 3) { this.focusMidi = s; this.history = []; }
+        const st = this.nearestString(midi);
+        this.streak = this.streak.midi === st ? { midi: st, count: this.streak.count + 1 } : { midi: st, count: 1 };
+        if (this.streak.count >= 3) this.focusMidi = st;
       }
       this.history.push(r.freq);
       if (this.history.length > 7) this.history.shift();
-      const sorted = [...this.history].sort((a, b) => a - b);
+      const sorted = [...this.history].sort((x, y) => x - y);
       const freq = sorted[Math.floor(sorted.length / 2)]; // median: steadier needle
       this.lastHeard = now;
       this.onReading({ freq, midi: freqToMidi(freq) });
-    } else if (now - this.lastHeard > 700) {
-      // Quiet: forget the focus so the next string is found fresh.
+    } else if (now - this.lastHeard > 1500) {
+      // Quiet for a while: clear the display and forget the focus.
       this.history = [];
       this.focusMidi = null;
       this.streak = { midi: null, count: 0 };
