@@ -7,7 +7,7 @@
   --wood: #f3e9d6;
   --fret: #b9ad96;
   --string: #8a8273;
-  --accent: #b5802f;
+  --accent: #2f3640;
   --accent-ink: #ffffff;
   --chip: #efeae0;
 
@@ -25,15 +25,15 @@
     --wood: #2a2620;
     --fret: #7a7062;
     --string: #b6ab97;
-    --accent: #d9a650;
-    --accent-ink: #1a1405;
+    --accent: #e6e1d6;
+    --accent-ink: #1a1a1a;
     --chip: #272b35;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #14161c; --card: #1d2028; --ink: #ece8df; --muted: #9c978c; --line: #333744;
-  --wood: #2a2620; --fret: #7a7062; --string: #b6ab97; --accent: #d9a650; --accent-ink: #1a1405; --chip: #272b35;
+  --wood: #2a2620; --fret: #7a7062; --string: #b6ab97; --accent: #e6e1d6; --accent-ink: #1a1a1a; --chip: #272b35;
   color-scheme: dark;
 }
 
@@ -89,6 +89,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 12px 16px; }
 .error { color: var(--root); font-weight: 600; }
 
 select, textarea, input[type="range"] { width: 100%; }
+input[type="range"] { accent-color: var(--accent); }
 select, textarea {
   background: var(--chip); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px;
 }
