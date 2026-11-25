@@ -164,12 +164,12 @@ export async function strum(pitches, { spread = 0.028 } = {}) {
   });
 }
 
-export async function arpeggio(pitches, { step = 0.32 } = {}) {
+export async function arpeggio(pitches, { step = 0.32, dur = 2.8 } = {}) {
   audio();
   await ready(pitches);
   const c = audio();
   const t = c.currentTime + 0.02;
-  [...pitches].sort((a, b) => a - b).forEach((p, i) => playAt(p, t + i * step, 0.8));
+  [...pitches].sort((a, b) => a - b).forEach((p, i) => playAt(p, t + i * step, 0.8, dur));
 }
 
 // "Hearing intervals" drill: root together with each chord tone, up then down.

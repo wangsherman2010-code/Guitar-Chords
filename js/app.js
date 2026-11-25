@@ -223,7 +223,8 @@ function setupStatic() {
     typing = setTimeout(() => { state.prog = e.target.value; state.progPreset = -1; save(); renderLead(); $('#progPreset').value = -1; }, 350);
   });
   $('#startFret').addEventListener('input', (e) => { state.startFret = +e.target.value; save(); renderLead(); });
-  $('#progPlay').addEventListener('click', playProgression);
+  $('#progPlay').addEventListener('click', () => playProgression('strum'));
+  $('#progArp').addEventListener('click', () => playProgression('notes'));
   $('#progCopy').addEventListener('click', async () => {
     const txt = $('#progOut pre.tab')?.textContent;
     if (!txt) return;
@@ -452,9 +453,21 @@ function renderCycleRow(out, g, inv) {
   out.append(sec);
 }
 
-function playSequence(seq, { onStep } = {}) {
-  const gap = Math.max(0.45, 60 / state.bpm * 2);
-  seq.forEach((v, i) => setTimeout(() => { strum(v.pitches); onStep && onStep(i); }, i * gap * 1000));
+let seqTimers = [];
+// mode 'strum': one strum per chord (2 beats each).
+// mode 'notes': each chord as single notes, low to high, in eighth notes.
+function playSequence(seq, { onStep, mode = 'strum' } = {}) {
+  seqTimers.forEach(clearTimeout); // a new play replaces any playback in progress
+  seqTimers = [];
+  const beat = 60 / state.bpm;
+  const gap = mode === 'notes'
+    ? Math.max(4, ...seq.map((v) => v.pitches.length)) * beat / 2
+    : Math.max(0.45, beat * 2);
+  seq.forEach((v, i) => seqTimers.push(setTimeout(() => {
+    if (mode === 'notes') arpeggio(v.pitches, { step: beat / 2, dur: beat * 2.5 });
+    else strum(v.pitches);
+    onStep && onStep(i);
+  }, i * gap * 1000)));
   return seq.length * gap;
 }
 
@@ -546,13 +559,14 @@ function renderLead() {
   out.append(card);
 }
 
-function playProgression() {
+function playProgression(mode = 'strum') {
   if (!leadPath) return;
   const cards = [...document.querySelectorAll('#progOut .vcard')];
   const secs = playSequence(leadPath, {
+    mode,
     onStep: (i) => cards.forEach((c, j) => c.classList.toggle('playing', i === j)),
   });
-  setTimeout(() => cards.forEach((c) => c.classList.remove('playing')), secs * 1000 + 200);
+  seqTimers.push(setTimeout(() => cards.forEach((c) => c.classList.remove('playing')), secs * 1000 + 200));
 }
 
 // ---------------------------------------------------------------------------

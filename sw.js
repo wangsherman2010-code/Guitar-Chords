@@ -1,5 +1,5 @@
 // Offline-first service worker. Bump VERSION when files change.
-const VERSION = 'cc-v3';
+const VERSION = 'cc-v4';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'js/app.js', 'js/theory.js', 'js/voicings.js', 'js/render.js', 'js/audio.js', 'js/lessons.js', 'js/palettes.js',
