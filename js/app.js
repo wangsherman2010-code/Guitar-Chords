@@ -6,6 +6,7 @@ import { familiesFor, buildGroup, groupById, voiceLead, movement, FAMILIES } fro
 import { chordDiagram, fretboard, tab } from './render.js';
 import { strum, arpeggio, intervalDrill, note, Metronome, INSTRUMENTS, setInstrument, preload } from './audio.js';
 import { LESSONS, PROGRESSIONS } from './lessons.js';
+import { PALETTES } from './palettes.js';
 
 const $ = (s) => document.querySelector(s);
 const STORE = 'chord-compass:v1';
@@ -28,6 +29,7 @@ const defaults = {
   progGroups: ['b5', 'b4'],
   startFret: 5,
   instrument: 'electric_guitar_jazz',
+  palette: 'jazz',
 };
 
 let state = { ...defaults };
@@ -91,6 +93,22 @@ function setupStatic() {
 
   document.querySelectorAll('.tabs button').forEach((b) =>
     b.addEventListener('click', () => { set({ tab: b.dataset.tab }, { keepSel: true }); window.scrollTo({ top: 0 }); }));
+
+  // Colours
+  const pal = $('#palette');
+  for (const p of PALETTES) {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = p.name;
+    pal.append(o);
+  }
+  pal.value = state.palette;
+  document.documentElement.dataset.palette = state.palette;
+  pal.addEventListener('change', () => {
+    state.palette = pal.value;
+    document.documentElement.dataset.palette = pal.value;
+    save();
+  });
 
   // Sound
   const inst = $('#instrument');

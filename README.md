@@ -2,6 +2,7 @@
 
 A guitar chord practice app (PWA) for jazz guitar. Pick a root and a chord type to see:
 
+- **Colours:** chord tones are colour-coded by degree. The default is *Jazz Club* (warm, muted, with bright orange 3rds). Guide Tones, Rainbow Ladder, Colour-blind safe and the original Bright set are in the Colours menu.
 - **Fretboard map:** every chord tone on frets 0–15, colour-coded and labelled R · 3 · 5 · 7 · 9 … (or note names). Tap a degree to hide it, and switch on a faint major-scale map for scale-degree counting.
 - **Voicings & inversions:** chord diagrams with the degree of each note, plus ASCII tab.
   - *Jazz Comping (book shapes):* drop 3 with 6th-string bass, drop 2 with 5th- and 4th-string bass, all four inversions (from *Jazz Comping Mastery 1*)

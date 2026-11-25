@@ -62,7 +62,9 @@ export function degreeFamily(token) {
   if (num === 7 || num === 14) return 'seventh';
   if (num === 6) return 'sixth';
   if (num === 2 || num === 4) return 'sus';
-  return 'ext'; // 9, 11, 13
+  if (num === 9) return 'ninth';
+  if (num === 11) return 'eleventh';
+  return 'thirteenth';
 }
 
 // Display label: "R" for the root (as in the exercise books), else the degree.

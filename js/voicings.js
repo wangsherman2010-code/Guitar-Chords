@@ -117,7 +117,7 @@ function chordRoles(q) {
 
 function templateOk(q) {
   if (q.voice || q.tones.length > 4 || !q.tones.includes('1')) return false;
-  if (q.tones.some((t) => degreeFamily(t) === 'ext')) return false;
+  if (q.tones.some((t) => ['ninth', 'eleventh', 'thirteenth'].includes(degreeFamily(t)))) return false;
   const r = chordRoles(q);
   return Boolean(r.third && r.fifth) && (q.tones.length === 3 || Boolean(r.seventh));
 }

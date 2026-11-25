@@ -11,14 +11,6 @@
   --accent-ink: #ffffff;
   --chip: #efeae0;
 
-  --root: #e5484d;
-  --third: #f5a524;
-  --fifth: #3e8ef7;
-  --seventh: #30a46c;
-  --sixth: #12a594;
-  --sus: #8e4ec6;
-  --ext: #d6409f;
-  --dot-ink: #ffffff;
   --radius: 14px;
   --bar-h: 62px;
   color-scheme: light;
@@ -110,10 +102,15 @@ textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; resize: 
 }
 .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .chip.deg { color: #fff; border: 0; }
-.chip.deg.deg-root { background: var(--root); } .chip.deg.deg-third { background: var(--third); }
-.chip.deg.deg-fifth { background: var(--fifth); } .chip.deg.deg-seventh { background: var(--seventh); }
-.chip.deg.deg-sixth { background: var(--sixth); } .chip.deg.deg-sus { background: var(--sus); }
-.chip.deg.deg-ext { background: var(--ext); }
+.chip.deg.deg-root { background: var(--root); color: var(--root-ink); }
+.chip.deg.deg-third { background: var(--third); color: var(--third-ink); }
+.chip.deg.deg-fifth { background: var(--fifth); color: var(--fifth-ink); }
+.chip.deg.deg-seventh { background: var(--seventh); color: var(--seventh-ink); }
+.chip.deg.deg-sixth { background: var(--sixth); color: var(--sixth-ink); }
+.chip.deg.deg-sus { background: var(--sus); color: var(--sus-ink); }
+.chip.deg.deg-ninth { background: var(--ninth); color: var(--ninth-ink); }
+.chip.deg.deg-eleventh { background: var(--eleventh); color: var(--eleventh-ink); }
+.chip.deg.deg-thirteenth { background: var(--thirteenth); color: var(--thirteenth-ink); }
 .chip.deg[aria-pressed="false"] { background: var(--chip) !important; color: var(--muted); text-decoration: line-through; }
 
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
@@ -145,14 +142,27 @@ textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; resize: 
 .deg-seventh { fill: var(--seventh); background: var(--seventh); stroke: var(--seventh); }
 .deg-sixth { fill: var(--sixth); background: var(--sixth); stroke: var(--sixth); }
 .deg-sus { fill: var(--sus); background: var(--sus); stroke: var(--sus); }
-.deg-ext { fill: var(--ext); background: var(--ext); stroke: var(--ext); }
+.deg-ninth { fill: var(--ninth); background: var(--ninth); stroke: var(--ninth); }
+.deg-eleventh { fill: var(--eleventh); background: var(--eleventh); stroke: var(--eleventh); }
+.deg-thirteenth { fill: var(--thirteenth); background: var(--thirteenth); stroke: var(--thirteenth); }
 .deg-root-text { fill: var(--root); color: var(--root); }
 .deg-third-text { fill: var(--third); color: var(--third); }
 .deg-fifth-text { fill: var(--fifth); color: var(--fifth); }
 .deg-seventh-text { fill: var(--seventh); color: var(--seventh); }
 .deg-sixth-text { fill: var(--sixth); color: var(--sixth); }
 .deg-sus-text { fill: var(--sus); color: var(--sus); }
-.deg-ext-text { fill: var(--ext); color: var(--ext); }
+.deg-ninth-text { fill: var(--ninth); color: var(--ninth); }
+.deg-eleventh-text { fill: var(--eleventh); color: var(--eleventh); }
+.deg-thirteenth-text { fill: var(--thirteenth); color: var(--thirteenth); }
+.ink-root { fill: var(--root-ink); }
+.ink-third { fill: var(--third-ink); }
+.ink-fifth { fill: var(--fifth-ink); }
+.ink-seventh { fill: var(--seventh-ink); }
+.ink-sixth { fill: var(--sixth-ink); }
+.ink-sus { fill: var(--sus-ink); }
+.ink-ninth { fill: var(--ninth-ink); }
+.ink-eleventh { fill: var(--eleventh-ink); }
+.ink-thirteenth { fill: var(--thirteenth-ink); }
 
 .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -172,7 +182,7 @@ textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; resize: 
 .board .tone.active circle { stroke: var(--ink); stroke-width: 2.5; }
 .board .ghostdot { fill: var(--card); stroke: var(--fret); stroke-width: 1; }
 .board .ghosttext { fill: var(--muted); font-size: 9.5px; font-weight: 600; }
-.dottext { fill: var(--dot-ink); font-size: 11px; font-weight: 800; pointer-events: none; }
+.dottext { font-size: 11px; font-weight: 800; pointer-events: none; }
 .dottext.small { font-size: 8.5px; }
 
 /* ---------- voicing cards ---------- */
@@ -265,3 +275,10 @@ details.seq summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 select.inline { width: auto; padding: 5px 8px; }
 .credit { color: var(--muted); font-size: 0.8rem; margin: 4px 4px 12px; }
 .credit a { color: inherit; }
+
+/* ---------- chord-tone colour sets (Jazz Club is the default) ---------- */
+:root, :root[data-palette="jazz"] { --root: #b83b3b; --root-ink: #ffffff; --third: #f76707; --third-ink: #ffffff; --fifth: #4b7bab; --fifth-ink: #ffffff; --seventh: #5f9058; --seventh-ink: #ffffff; --sixth: #3f8f8a; --sixth-ink: #ffffff; --sus: #8a6a9c; --sus-ink: #ffffff; --ninth: #b5657f; --ninth-ink: #ffffff; --eleventh: #9a7b4f; --eleventh-ink: #ffffff; --thirteenth: #6d6fb0; --thirteenth-ink: #ffffff; }
+:root[data-palette="guide"] { --root: #a61e4d; --root-ink: #ffffff; --third: #f76707; --third-ink: #ffffff; --fifth: #adb5bd; --fifth-ink: #1d1c1a; --seventh: #1c7ed6; --seventh-ink: #ffffff; --sixth: #4dabf7; --sixth-ink: #1d1c1a; --sus: #e8a33d; --sus-ink: #1d1c1a; --ninth: #be4bdb; --ninth-ink: #ffffff; --eleventh: #9775fa; --eleventh-ink: #ffffff; --thirteenth: #12b886; --thirteenth-ink: #1d1c1a; }
+:root[data-palette="rainbow"] { --root: #e03131; --root-ink: #ffffff; --third: #f76707; --third-ink: #ffffff; --fifth: #f2b705; --fifth-ink: #1d1c1a; --seventh: #2f9e44; --seventh-ink: #ffffff; --sixth: #0ca678; --sixth-ink: #ffffff; --sus: #e64980; --sus-ink: #ffffff; --ninth: #1971c2; --ninth-ink: #ffffff; --eleventh: #5f3dc4; --eleventh-ink: #ffffff; --thirteenth: #ae3ec9; --thirteenth-ink: #ffffff; }
+:root[data-palette="cb"] { --root: #d55e00; --root-ink: #ffffff; --third: #e69f00; --third-ink: #1d1c1a; --fifth: #56b4e9; --fifth-ink: #1d1c1a; --seventh: #009e73; --seventh-ink: #ffffff; --sixth: #0072b2; --sixth-ink: #ffffff; --sus: #cc79a7; --sus-ink: #ffffff; --ninth: #f0e442; --ninth-ink: #1d1c1a; --eleventh: #8c8c8c; --eleventh-ink: #ffffff; --thirteenth: #882255; --thirteenth-ink: #ffffff; }
+:root[data-palette="bright"] { --root: #e5484d; --root-ink: #ffffff; --third: #f5a524; --third-ink: #1d1c1a; --fifth: #3e8ef7; --fifth-ink: #ffffff; --seventh: #30a46c; --seventh-ink: #ffffff; --sixth: #12a594; --sixth-ink: #ffffff; --sus: #8e4ec6; --sus-ink: #ffffff; --ninth: #d6409f; --ninth-ink: #ffffff; --eleventh: #e93d82; --eleventh-ink: #ffffff; --thirteenth: #ab4aba; --thirteenth-ink: #ffffff; }

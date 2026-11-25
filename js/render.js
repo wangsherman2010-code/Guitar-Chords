@@ -56,7 +56,7 @@ export function chordDiagram(v, root, mode = 'degree') {
       const y = top + (f - start + 0.5) * fretH;
       svg.append(el('circle', { cx: x, cy: y, r: 8.5, class: `dot deg-${fam}` }));
       const lab = dotLabel(root, d, mode);
-      svg.append(el('text', { x, y: y + 3.6, class: `dottext${lab.length > 2 ? ' small' : ''}`, 'text-anchor': 'middle' }, lab));
+      svg.append(el('text', { x, y: y + 3.6, class: `dottext ink-${fam}${lab.length > 2 ? ' small' : ''}`, 'text-anchor': 'middle' }, lab));
     }
     // Label under the string (the other naming, like the book's R 5 7 3 row)
     const under = mode === 'note' ? degreeLabel(d) : shortNote(spellDegree(root, d));
@@ -118,7 +118,7 @@ export function fretboard({ root, tones, hidden = new Set(), mode = 'degree', vo
         const grp = el('g', { class: `tone${dim ? ' faded' : ''}${active ? ' active' : ''}`, 'data-s': s, 'data-f': f });
         grp.append(el('circle', { cx: x, cy: y, r: active ? 11.5 : 10, class: `dot deg-${fam}` }));
         const lab = dotLabel(root, t, mode);
-        grp.append(el('text', { x, y: y + 4, class: `dottext${lab.length > 2 ? ' small' : ''}`, 'text-anchor': 'middle' }, lab));
+        grp.append(el('text', { x, y: y + 4, class: `dottext ink-${fam}${lab.length > 2 ? ' small' : ''}`, 'text-anchor': 'middle' }, lab));
         g.append(grp);
       } else if (scaleByPc.has(pc)) {
         const st = scaleByPc.get(pc);
