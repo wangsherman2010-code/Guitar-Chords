@@ -858,6 +858,7 @@ async function startTuner() {
     return;
   }
   tuner = new Tuner(showReading);
+  if (tunerLock !== null) tuner.setLock(STRINGS[tunerLock].midi);
   try {
     await tuner.start();
     $('#tStart').textContent = '■ Stop listening';
@@ -881,6 +882,7 @@ function renderTunerStrings(targetIdx) {
     if (tunedOk.has(i)) b.classList.add('done');
     b.addEventListener('click', () => {
       tunerLock = tunerLock === i ? null : i;
+      if (tuner) tuner.setLock(tunerLock === null ? null : STRINGS[tunerLock].midi);
       note(st.midi); // reference tone
       renderTunerStrings(tunerLock ?? targetIdx);
     });
