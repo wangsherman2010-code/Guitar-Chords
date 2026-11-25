@@ -30,6 +30,7 @@ const defaults = {
   startFret: 5,
   instrument: 'electric_guitar_jazz',
   palette: 'jazz',
+  barOpen: false,
 };
 
 let state = { ...defaults };
@@ -150,12 +151,16 @@ function setupStatic() {
   // Practice bar
   const metro = new Metronome((beat) => {
     document.querySelectorAll('#beats i').forEach((d, i) => d.classList.toggle('on', i === beat));
+    const fab = $('#barOpen');
+    fab.classList.add('pulse');
+    setTimeout(() => fab.classList.remove('pulse'), 90);
   });
   metro.bpm = state.bpm;
   const updBpm = (d) => {
     state.bpm = Math.max(30, Math.min(260, state.bpm + d));
     metro.bpm = state.bpm;
     $('#bpm').textContent = state.bpm;
+    $('#fabBpm').textContent = state.bpm;
     save();
   };
   $('#bpmDown').addEventListener('click', () => updBpm(-4));
@@ -163,9 +168,17 @@ function setupStatic() {
   $('#metroToggle').addEventListener('click', () => {
     const on = metro.toggle();
     $('#metroToggle').textContent = on ? '■' : '▶';
+    $('#barOpen').classList.toggle('running', on);
     $('#metroToggle').setAttribute('aria-label', on ? 'Stop metronome' : 'Start metronome');
     if (!on) document.querySelectorAll('#beats i').forEach((d) => d.classList.remove('on'));
   });
+  // Collapsible practice bar (folded by default so it doesn't cover the page).
+  const applyBar = () => document.body.classList.toggle('bar-collapsed', !state.barOpen);
+  applyBar();
+  $('#fabBpm').textContent = state.bpm;
+  $('#barClose').addEventListener('click', () => { state.barOpen = false; save(); applyBar(); });
+  $('#barOpen').addEventListener('click', () => { state.barOpen = true; save(); applyBar(); });
+
   $('#nextRoot').addEventListener('click', () => {
     const i = PRACTICE_ROOTS.indexOf(state.root);
     const next = PRACTICE_ROOTS[(i + 1) % PRACTICE_ROOTS.length];
@@ -226,7 +239,7 @@ function setupStatic() {
   $('#progPlay').addEventListener('click', () => playProgression('strum'));
   $('#progArp').addEventListener('click', () => playProgression('notes'));
   $('#progCopy').addEventListener('click', async () => {
-    const txt = $('#progOut pre.tab')?.textContent;
+    const txt = $('#progTab')?.textContent;
     if (!txt) return;
     try { await navigator.clipboard.writeText(txt); toast('Tab copied'); } catch { toast('Copy not available'); }
   });
@@ -320,7 +333,7 @@ function voicingCard(v, root, quality, { title, sub } = {}) {
   bArp.addEventListener('click', (e) => { e.stopPropagation(); arpeggio(v.pitches); });
   actions.append(bStrum, bArp);
   const pre = document.createElement('pre');
-  pre.className = 'tab';
+  pre.className = 'tabtext';
   pre.textContent = tab(v);
   card.append(t, s, chordDiagram(v, root, state.labels), actions, pre);
   const pick = () => {
@@ -403,7 +416,7 @@ function renderVoicings() {
       det.className = 'seq';
       det.innerHTML = '<summary>Tab: walk these shapes up the neck</summary>';
       const pre = document.createElement('pre');
-      pre.className = 'tab';
+      pre.className = 'tabtext';
       pre.textContent = tab(seq, { labels: seq.map((v) => shortInv(v)) });
       const play = document.createElement('button');
       play.className = 'btn ghost';
@@ -550,7 +563,8 @@ function renderLead() {
   });
   card.append(grid);
   const full = document.createElement('pre');
-  full.className = 'tab';
+  full.className = 'tabtext';
+  full.id = 'progTab';
   full.textContent = tab(leadPath, { labels: leadPath.map((v) => v.chord.symbol) });
   const h = document.createElement('h3');
   h.style.marginTop = '14px';
