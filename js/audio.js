@@ -5,6 +5,8 @@ let ctx = null;
 let master = null;
 let sampleBus = null;
 const cache = new Map();
+const active = new Set(); // sounding notes, so they can be stopped
+let gen = 0; // bumps on stopAll(); cancels notes still waiting to load
 
 export const INSTRUMENTS = [
   { id: 'electric_guitar_jazz', name: 'Jazz guitar (clean electric)', gain: 3.2 },
@@ -134,13 +136,37 @@ function playAt(midi, when, gain = 0.8, dur = 2.8) {
     src.connect(g).connect(sampleBus);
     src.start(when);
     src.stop(when + dur + 0.05);
+    track(src, g);
   } else {
     if (instrument.id !== 'synth') loadSample(instrument.id, midi); // ready next time
     src.buffer = pluckBuffer(midi);
     g.gain.value = gain;
     src.connect(g).connect(master);
     src.start(when);
+    track(src, g);
   }
+}
+
+function track(src, g) {
+  const n = { src, g };
+  active.add(n);
+  src.onended = () => active.delete(n);
+}
+
+// Silence everything quickly (short fade avoids a click).
+export function stopAll() {
+  gen++;
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  for (const { src, g } of active) {
+    try {
+      g.gain.cancelScheduledValues(t);
+      g.gain.setValueAtTime(g.gain.value, t);
+      g.gain.linearRampToValueAtTime(0.0001, t + 0.06);
+      src.stop(t + 0.08);
+    } catch { /* already stopped */ }
+  }
+  active.clear();
 }
 
 // Wait (briefly) for the needed samples, so the first strum isn't the synth.
@@ -152,7 +178,9 @@ async function ready(pitches) {
 
 export async function strum(pitches, { spread = 0.028 } = {}) {
   audio();
+  const my = gen;
   await ready(pitches);
+  if (my !== gen) return;
   const c = audio();
   const t = c.currentTime + 0.02;
   // Thumb/pick strum: low to high, small human timing variation, top voice a bit louder.
@@ -166,7 +194,9 @@ export async function strum(pitches, { spread = 0.028 } = {}) {
 
 export async function arpeggio(pitches, { step = 0.32, dur = 2.8 } = {}) {
   audio();
+  const my = gen;
   await ready(pitches);
+  if (my !== gen) return;
   const c = audio();
   const t = c.currentTime + 0.02;
   [...pitches].sort((a, b) => a - b).forEach((p, i) => playAt(p, t + i * step, 0.8, dur));
@@ -177,7 +207,9 @@ export function intervalDrill(rootPitch, tonePitches, { step = 1.0 } = {}) {
   audio();
   const ups = [...tonePitches].sort((a, b) => a - b);
   const seq = [...ups, ...ups.slice(0, -1).reverse()];
+  const my = gen;
   ready([rootPitch, ...tonePitches]).then(() => {
+    if (my !== gen) return;
     const c = audio();
     let t = c.currentTime + 0.05;
     for (const p of seq) {

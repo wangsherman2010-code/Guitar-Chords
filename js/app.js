@@ -4,7 +4,7 @@ import {
 } from './theory.js';
 import { familiesFor, buildGroup, groupById, voiceLead, movement, FAMILIES } from './voicings.js';
 import { chordDiagram, fretboard, tab } from './render.js';
-import { strum, arpeggio, intervalDrill, note, Metronome, INSTRUMENTS, setInstrument, preload } from './audio.js';
+import { strum, arpeggio, intervalDrill, note, Metronome, INSTRUMENTS, setInstrument, preload, stopAll } from './audio.js';
 import { LESSONS, PROGRESSIONS } from './lessons.js';
 import { PALETTES } from './palettes.js';
 
@@ -236,8 +236,8 @@ function setupStatic() {
     typing = setTimeout(() => { state.prog = e.target.value; state.progPreset = -1; save(); renderLead(); $('#progPreset').value = -1; }, 350);
   });
   $('#startFret').addEventListener('input', (e) => { state.startFret = +e.target.value; save(); renderLead(); });
-  $('#progPlay').addEventListener('click', () => playProgression('strum'));
-  $('#progArp').addEventListener('click', () => playProgression('notes'));
+  $('#progPlay').addEventListener('click', () => toggleProgression('strum'));
+  $('#progArp').addEventListener('click', () => toggleProgression('notes'));
   $('#progCopy').addEventListener('click', async () => {
     const txt = $('#progTab')?.textContent;
     if (!txt) return;
@@ -467,8 +467,7 @@ let seqTimers = [];
 // mode 'strum': one strum per chord (2 beats each).
 // mode 'notes': each chord as single notes, low to high, in eighth notes.
 function playSequence(seq, { onStep, mode = 'strum' } = {}) {
-  seqTimers.forEach(clearTimeout); // a new play replaces any playback in progress
-  seqTimers = [];
+  stopPlayback(); // a new play replaces any playback in progress
   const beat = 60 / state.bpm;
   const gap = mode === 'notes'
     ? Math.max(4, ...seq.map((v) => v.pitches.length)) * beat / 2
@@ -488,6 +487,18 @@ const LEAD_GROUPS = [
   ['b6', '6th-str drop 3'], ['b5', '5th-str drop 2'], ['b4', '4th-str drop 2'],
   ['d2-6', 'Drop 2 · 6543'], ['d3-5', 'Drop 3 · 5321'], ['sh-6', 'Shells · 6th'], ['sh-5', 'Shells · 5th'],
 ];
+// Plain-language explanations shown when a shape button is tapped.
+const LEAD_INFO = {
+  b6: 'Lowest note on the 6th string (low E). Uses strings 6-4-3-2, with the 5th string muted. A deep, full sound. These are the 6th-string shapes from Jazz Comping Mastery.',
+  b5: 'Lowest note on the 5th string (A). Uses four neighbouring strings, 5-4-3-2. The most common jazz comping shape: compact, clear and easy to move. The book\'s 5th-string shapes.',
+  b4: 'Lowest note on the 4th string (D). Uses the top four strings, 4-3-2-1. A brighter, higher sound that sits well above a bass player. The book\'s 4th-string shapes.',
+  'd2-6': 'Drop 2 on the bottom four strings, 6-5-4-3. A dark, low sound. Can get muddy below about the 5th fret.',
+  'd3-5': 'Drop 3 with the lowest note on the 5th string. Uses strings 5-3-2-1, with the 4th string muted. Wide, open spacing.',
+  'sh-6': 'Shell voicing: only Root, 3rd and 7th, the notes that define the chord. Root on the 6th string, strings 6-4-3. Lean, big-band style.',
+  'sh-5': 'Shell voicing with the root on the 5th string, strings 5-4-3. Same idea: just R, 3 and 7.',
+};
+let lastTappedGroup = null;
+let playingMode = null; // 'strum' | 'notes' | null
 let leadPath = null;
 
 function parseProg(text) {
@@ -509,6 +520,7 @@ function renderLead() {
   $('#startFretVal').textContent = state.startFret;
   $('#progGroups').replaceChildren(...LEAD_GROUPS.map(([id, label]) => chip(label, state.progGroups.includes(id), () => {
     const has = state.progGroups.includes(id);
+    lastTappedGroup = id;
     let next = has ? state.progGroups.filter((x) => x !== id) : [...state.progGroups, id];
     if (!next.length) next = [id];
     set({ progGroups: next });
@@ -517,8 +529,10 @@ function renderLead() {
   const { chords, bad } = parseProg(state.prog);
   const err = $('#progError');
   const out = $('#progOut');
+  if (playingMode) stopPlayback(); // the cards are about to change
   out.replaceChildren();
   leadPath = null;
+  renderGroupInfo(null);
   if (bad.length) {
     err.hidden = false;
     err.textContent = `Couldn't read: ${bad.join(', ')}. Try symbols like Dm7, G7, Cmaj7, Bø, F#°7, E7b9.`;
@@ -533,6 +547,7 @@ function renderLead() {
     return;
   }
   leadPath = path.map((v, i) => ({ ...v, chord: chords[i] }));
+  renderGroupInfo(leadPath);
 
   const card = document.createElement('div');
   card.className = 'card';
@@ -570,6 +585,57 @@ function renderLead() {
   out.append(card);
 }
 
+// Mini picture of which strings a shape uses: E A D G B e, filled = played.
+function stringStrip(id) {
+  const g = groupById(id);
+  const used = new Set(g ? g.strings : []);
+  return `<span class="strip" aria-hidden="true">${['E', 'A', 'D', 'G', 'B', 'e']
+    .map((n, i) => `<i class="${used.has(i) ? 'on' : ''}">${n}</i>`).join('')}</span>`;
+}
+
+function renderGroupInfo(path) {
+  const box = $('#progGroupInfo');
+  if (!box) return;
+  const label = Object.fromEntries(LEAD_GROUPS);
+  let html = '';
+  if (lastTappedGroup) {
+    const on = state.progGroups.includes(lastTappedGroup);
+    html += `<div class="gsel"><div class="ghead"><b>${label[lastTappedGroup]}</b> ${stringStrip(lastTappedGroup)}
+      <span class="gstate ${on ? 'on' : ''}">${on ? 'On' : 'Off'}</span></div><p>${LEAD_INFO[lastTappedGroup]}</p></div>`;
+  }
+  if (path) {
+    const counts = {};
+    path.forEach((v) => { counts[v.groupId] = (counts[v.groupId] || 0) + 1; });
+    const used = Object.entries(counts).map(([id, n]) => `<b>${label[id] || id}</b> (${n} chord${n > 1 ? 's' : ''})`).join(', ');
+    html += `<p class="gused">This progression uses: ${used}.</p>`;
+  }
+  html += `<p class="gtip">Tap a shape to turn it on or off and read what it is. With <b>one</b> on, every chord uses that string set.
+    With <b>several</b> on, the app picks, chord by chord, whichever shape is closest to the last one. So turning on another shape
+    only changes the result if it gives a smoother move.</p>`;
+  box.innerHTML = html;
+}
+
+function setPlayButtons() {
+  $('#progPlay').textContent = playingMode === 'strum' ? '■ Stop' : '▶ Play through (strum)';
+  $('#progArp').textContent = playingMode === 'notes' ? '■ Stop' : '♪ Play through (single notes)';
+  $('#progPlay').classList.toggle('stop', playingMode === 'strum');
+  $('#progArp').classList.toggle('stop', playingMode === 'notes');
+}
+
+// Stop any sequence: cancel what hasn't started yet and silence what's ringing.
+function stopPlayback() {
+  seqTimers.forEach(clearTimeout);
+  seqTimers = [];
+  stopAll();
+  document.querySelectorAll('#progOut .vcard.playing').forEach((c) => c.classList.remove('playing'));
+  if (playingMode) { playingMode = null; setPlayButtons(); }
+}
+
+function toggleProgression(mode) {
+  if (playingMode === mode) { stopPlayback(); return; }
+  playProgression(mode);
+}
+
 function playProgression(mode = 'strum') {
   if (!leadPath) return;
   const cards = [...document.querySelectorAll('#progOut .vcard')];
@@ -577,7 +643,13 @@ function playProgression(mode = 'strum') {
     mode,
     onStep: (i) => cards.forEach((c, j) => c.classList.toggle('playing', i === j)),
   });
-  seqTimers.push(setTimeout(() => cards.forEach((c) => c.classList.remove('playing')), secs * 1000 + 200));
+  playingMode = mode;
+  setPlayButtons();
+  seqTimers.push(setTimeout(() => {
+    cards.forEach((c) => c.classList.remove('playing'));
+    playingMode = null;
+    setPlayButtons();
+  }, secs * 1000 + 600));
 }
 
 // ---------------------------------------------------------------------------
