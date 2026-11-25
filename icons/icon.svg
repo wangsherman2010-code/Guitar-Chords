@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#14161c"/>
+  <g stroke="#c9b48a" stroke-width="10" stroke-linecap="round">
+    <line x1="136" y1="110" x2="136" y2="410"/>
+    <line x1="216" y1="110" x2="216" y2="410"/>
+    <line x1="296" y1="110" x2="296" y2="410"/>
+    <line x1="376" y1="110" x2="376" y2="410"/>
+  </g>
+  <rect x="116" y="96" width="280" height="22" rx="8" fill="#efe6d2"/>
+  <g stroke="#6f6a5e" stroke-width="6">
+    <line x1="126" y1="185" x2="386" y2="185"/>
+    <line x1="126" y1="260" x2="386" y2="260"/>
+    <line x1="126" y1="335" x2="386" y2="335"/>
+    <line x1="126" y1="408" x2="386" y2="408"/>
+  </g>
+  <circle cx="136" cy="222" r="34" fill="#e5484d"/>
+  <circle cx="216" cy="297" r="34" fill="#3e8ef7"/>
+  <circle cx="296" cy="297" r="34" fill="#30a46c"/>
+  <circle cx="376" cy="222" r="34" fill="#f5a524"/>
+  <text x="136" y="234" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="34" fill="#fff" text-anchor="middle">R</text>
+  <text x="216" y="309" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="34" fill="#fff" text-anchor="middle">5</text>
+  <text x="296" y="309" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="34" fill="#fff" text-anchor="middle">7</text>
+  <text x="376" y="234" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="34" fill="#fff" text-anchor="middle">3</text>
+</svg>
