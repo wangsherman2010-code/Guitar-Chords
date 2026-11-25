@@ -20,8 +20,8 @@ function dotLabel(root, degree, mode) {
 // Vertical chord diagram (like the exercise books): strings 6 → 1 left to right.
 // ---------------------------------------------------------------------------
 export function chordDiagram(v, root, mode = 'degree') {
-  const W = 140, H = 190;
-  const left = 32, top = 34, gap = 18, fretH = 26, frets = 5;
+  const W = 144, H = 190;
+  const left = 36, top = 34, gap = 18, fretH = 26, frets = 5;
   const fretted = v.frets.filter((f) => f !== null && f > 0);
   const maxF = fretted.length ? Math.max(...fretted) : 0;
   const minF = fretted.length ? Math.min(...fretted) : 1;
@@ -33,7 +33,7 @@ export function chordDiagram(v, root, mode = 'degree') {
   if (start === 1) {
     svg.append(el('rect', { x: left - 1, y: top - 4, width: gap * 5 + 2, height: 4, class: 'nut' }));
   } else {
-    svg.append(el('text', { x: left - 6, y: top + fretH / 2 + 4, class: 'fretnum', 'text-anchor': 'end' }, `${start}fr`));
+    svg.append(el('text', { x: left - 11, y: top + fretH / 2 + 4, class: 'fretnum', 'text-anchor': 'end' }, `${start}fr`));
   }
   for (let i = 0; i <= frets; i++) {
     svg.append(el('line', { x1: left, x2: left + gap * 5, y1: top + i * fretH, y2: top + i * fretH, class: 'fret' }));

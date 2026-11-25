@@ -332,10 +332,7 @@ function voicingCard(v, root, quality, { title, sub } = {}) {
   bArp.type = 'button'; bArp.textContent = '♪'; bArp.title = 'Arpeggio (low to high)';
   bArp.addEventListener('click', (e) => { e.stopPropagation(); arpeggio(v.pitches); });
   actions.append(bStrum, bArp);
-  const pre = document.createElement('pre');
-  pre.className = 'tabtext';
-  pre.textContent = tab(v);
-  card.append(t, s, chordDiagram(v, root, state.labels), actions, pre);
+  card.append(t, s, chordDiagram(v, root, state.labels), actions);
   const pick = () => {
     if (root !== state.root || quality.id !== state.quality) {
       state.root = root; state.quality = quality.id; save();
