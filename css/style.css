@@ -411,6 +411,7 @@ body.bar-collapsed .fab { display: flex; }
 .listenpanel { background: var(--chip); border-radius: 12px; padding: 12px 14px; margin: 4px 0 10px; text-align: center; }
 .listenpanel .lstatus { font-weight: 700; color: var(--muted); margin-bottom: 6px; }
 .listenpanel .lstatus.hearing { color: var(--root); }
+.listenpanel .lstatus.notchord { color: var(--muted); font-style: italic; }
 .listenpanel .lhead { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .listenpanel .lname { font-size: 2.2rem; font-weight: 800; line-height: 1.1; }
 .listenpanel .lname.muted { color: var(--muted); }

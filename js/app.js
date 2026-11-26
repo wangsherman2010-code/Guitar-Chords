@@ -729,7 +729,11 @@ async function toggleListening() {
   }
   chordListener = new ChordListener(
     (r) => { heard = r; heardPick = 0; renderListen(); },
-    (lvl) => { listenStatus = lvl; renderListen(); },
+    (lvl) => {
+      listenStatus = lvl;
+      renderListen();
+      if (lvl === 'notchord') setTimeout(() => { if (listenStatus === 'notchord') { listenStatus = 'waiting'; renderListen(); } }, 1500);
+    },
   );
   try {
     await chordListener.start();
@@ -777,7 +781,8 @@ function renderListen() {
     return;
   }
   if (chordListener) {
-    html += `<div class="lstatus ${listenStatus}">${listenStatus === 'hearing' ? '● Hearing…' : '🎙 Listening: strum a chord'}</div>`;
+    html += `<div class="lstatus ${listenStatus}">${listenStatus === 'hearing' ? '● Hearing…'
+      : listenStatus === 'notchord' ? 'Heard a sound, but not a chord' : '🎙 Listening: strum a chord'}</div>`;
   }
   if (heard) {
     const cands = heard.candidates;

@@ -226,6 +226,94 @@ export function analyse(buf, sampleRate) {
   return analyseSpectrum(spectrum(buf), sampleRate);
 }
 
+// ---------------------------------------------------------------------------
+// Is this really a chord? (Stops voices, TV, taps and noise being named.)
+// - tonality: share of the sound's energy that sits on the found notes and
+//   their overtones (noise and knocks spread energy everywhere);
+// - stability: the strongest notes must be the same early and late in the
+//   capture (speech and TV keep changing pitch);
+// - sustain (checked by the listener): a chord still rings ~0.5 s after the
+//   strum; knocks and claps are gone.
+// ---------------------------------------------------------------------------
+export const GATE = { tonality: 0.5, stability: 0.5, sustain: 0.1, drift: 25 };
+
+export function tonality(mag, notes, sampleRate) {
+  const df = sampleRate / FFT_SIZE;
+  const lo = Math.floor(70 / df), hi = Math.ceil(2500 / df);
+  let total = 0;
+  for (let b = lo; b <= hi; b++) total += mag[b] * mag[b];
+  if (!total) return 0;
+  const used = new Uint8Array(hi + 1);
+  let tonal = 0;
+  for (const n of notes) {
+    const f = midiToFreq(n.midi);
+    for (let h = 1; h <= 6; h++) {
+      const c = Math.round((f * h) / df);
+      for (let b = c - 2; b <= c + 2; b++) {
+        if (b < lo || b > hi || used[b]) continue;
+        used[b] = 1;
+        tonal += mag[b] * mag[b];
+      }
+    }
+  }
+  return tonal / total;
+}
+
+function topPcs(notes, k = 3) {
+  return new Set([...notes].sort((a, b) => b.salience - a.salience).slice(0, k).map((n) => n.midi % 12));
+}
+
+export function stability(spectra, sampleRate) {
+  if (spectra.length < 2) return 1;
+  const h = Math.ceil(spectra.length / 2);
+  const a = topPcs(findNotes(averageSpectra(spectra.slice(0, h)), sampleRate));
+  const b = topPcs(findNotes(averageSpectra(spectra.slice(h)), sampleRate));
+  if (!a.size || !b.size) return 0;
+  let same = 0;
+  for (const pc of a) if (b.has(pc)) same++;
+  return same / Math.max(a.size, b.size);
+}
+
+// Precise frequency of the spectral peak near f (parabolic interpolation).
+function peakFreq(mag, f, df) {
+  const c = Math.round(f / df);
+  let best = c;
+  for (let b = Math.max(1, c - 3); b <= c + 3 && b < mag.length - 1; b++) if (mag[b] > mag[best]) best = b;
+  const a = mag[best - 1], m = mag[best], z = mag[best + 1];
+  const d = a - 2 * m + z;
+  return (best + (d ? (0.5 * (a - z)) / d : 0)) * df;
+}
+
+// How far (in cents) the strongest notes move across the capture (spread of
+// the pitch over every spectrum). Guitar notes hold their pitch; voices glide
+// and wobble.
+export function pitchDrift(spectra, notes, sampleRate) {
+  if (spectra.length < 2) return 0;
+  const df = sampleRate / FFT_SIZE;
+  let worst = 0;
+  for (const n of [...notes].sort((a, b) => b.salience - a.salience).slice(0, 2)) {
+    // Measure on the strongest of the first four harmonics: finer resolution.
+    const f0 = midiToFreq(n.midi);
+    let h = 1, best = 0;
+    for (let k = 1; k <= 4; k++) { const v = peakAt(spectra[0], f0 * k, df); if (v > best && f0 * k < 3000) { best = v; h = k; } }
+    const fs = spectra.map((m) => peakFreq(m, f0 * h, df));
+    worst = Math.max(worst, 1200 * Math.log2(Math.max(...fs) / Math.min(...fs)));
+  }
+  return worst;
+}
+
+// Full decision for one captured strum: a result, or null if it isn't a chord.
+export function analyseCapture(spectra, sampleRate, gate = GATE) {
+  const mag = averageSpectra(spectra);
+  const r = analyseSpectrum(mag, sampleRate);
+  if (r.notes.length < 2 || !r.candidates.length) return null;
+  const ton = tonality(mag, r.notes, sampleRate);
+  const stab = stability(spectra, sampleRate);
+  const drift = pitchDrift(spectra, r.notes, sampleRate);
+  if (ton < gate.tonality || stab < gate.stability || drift > gate.drift) return null;
+  return { ...r, tonality: ton, stability: stab, drift };
+}
+
 // Average several spectra (taken while the chord rings) for stability.
 export function averageSpectra(list) {
   const out = new Float32Array(list[0].length);
@@ -241,6 +329,7 @@ export class ChordListener {
     this.onResult = onResult; // ({ notes, candidates }) after each strum
     this.onLevel = onLevel; // 'waiting' | 'hearing'
     this.prevRms = 0;
+    this.noise = 0.002; // running background level
     this.capture = null;
   }
 
@@ -260,25 +349,38 @@ export class ChordListener {
 
   tick() {
     this.analyser.getFloatTimeDomainData(this.buf);
+    this.step(this.buf, performance.now(), this.ctx.sampleRate);
+  }
+
+  // One step (separate from the mic so it can be replayed on recordings).
+  step(buf, now, sampleRate) {
     // Loudness of the most recent ~40 ms, to spot a new strum.
     let rms = 0;
-    for (let i = FFT_SIZE - 2048; i < FFT_SIZE; i++) rms += this.buf[i] * this.buf[i];
+    for (let i = buf.length - 2048; i < buf.length; i++) rms += buf[i] * buf[i];
     rms = Math.sqrt(rms / 2048);
-    const now = performance.now();
-    if (rms > 0.006 && rms > this.prevRms * 1.8 && !this.capture) {
-      this.capture = { t0: now, spectra: [] };
+    // Learn the room's background level while nothing is happening.
+    if (!this.capture && rms < this.noise * 3) this.noise = 0.95 * this.noise + 0.05 * Math.max(rms, 0.0005);
+    // A strum: a sudden jump, well above the room's background level.
+    if (!this.capture && rms > Math.max(0.008, this.noise * 6) && rms > this.prevRms * 1.8) {
+      this.capture = { t0: now, spectra: [], onsetRms: rms };
       this.onLevel && this.onLevel('hearing');
     }
     this.prevRms = rms;
     if (this.capture) {
       const dt = now - this.capture.t0;
       // Skip the pick attack, then average ~0.3 s of the ringing chord.
-      if (dt >= 250) this.capture.spectra.push(spectrum(this.buf));
+      if (dt >= 250) this.capture.spectra.push(spectrum(buf));
       if ((dt >= 550 && this.capture.spectra.length) || this.capture.spectra.length >= 4) {
-        const mag = averageSpectra(this.capture.spectra);
+        const ringing = rms >= GATE.sustain * this.capture.onsetRms;
+        const result = ringing ? analyseCapture(this.capture.spectra, sampleRate) : null;
+        this.lastDecision = { t0: this.capture.t0, ringing, sustain: rms / this.capture.onsetRms, result };
         this.capture = null;
-        this.onResult(analyseSpectrum(mag, this.ctx.sampleRate));
-        this.onLevel && this.onLevel('waiting');
+        if (result) {
+          this.onResult(result);
+          this.onLevel && this.onLevel('waiting');
+        } else {
+          this.onLevel && this.onLevel('notchord');
+        }
       }
     }
   }
