@@ -17,7 +17,11 @@ export function pitchesFromFrets(frets) {
 }
 
 export function identify(frets) {
-  const pitches = pitchesFromFrets(frets);
+  return identifyPitches(pitchesFromFrets(frets));
+}
+
+// Same, from MIDI note numbers (used by the Listen feature).
+export function identifyPitches(pitches) {
   if (!pitches.length) return { pitches, pcs: [], bassPc: null, candidates: [] };
   const bass = Math.min(...pitches);
   const bassPc = bass % 12;

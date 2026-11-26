@@ -405,3 +405,21 @@ body.bar-collapsed .fab { display: flex; }
 .tsmall { font-size: 0.8rem; }
 .tstart { width: 100%; padding: 12px; font-size: 1rem; }
 .tstart.on { background: var(--root); color: #fff; }
+
+/* ---------- listen (chord recognition) ---------- */
+#fListen.stop { background: var(--root); color: #fff; }
+.listenpanel { background: var(--chip); border-radius: 12px; padding: 12px 14px; margin: 4px 0 10px; text-align: center; }
+.listenpanel .lstatus { font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+.listenpanel .lstatus.hearing { color: var(--root); }
+.listenpanel .lhead { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.listenpanel .lname { font-size: 2.2rem; font-weight: 800; line-height: 1.1; }
+.listenpanel .lname.muted { color: var(--muted); }
+.listenpanel .lsub { color: var(--muted); font-size: 0.9rem; }
+.listenpanel .rnotes {
+  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); max-width: calc(var(--n, 4) * 70px);
+  margin: 10px auto 4px; text-align: center;
+}
+.listenpanel .rnotes span { display: flex; flex-direction: column; align-items: center; font-size: 1.8rem; font-weight: 800; line-height: 1.05; }
+.listenpanel .rnotes small { font-size: 0.8rem; font-weight: 700; margin-top: 3px; }
+.listenpanel .lalt { margin: 8px 0; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; align-items: center; color: var(--muted); font-size: 0.88rem; }
+.deg-none-text { color: var(--muted); }

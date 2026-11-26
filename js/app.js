@@ -9,6 +9,7 @@ import { strum, arpeggio, intervalDrill, note, Metronome, INSTRUMENTS, setInstru
 import { LESSONS, PROGRESSIONS } from './lessons.js';
 import { PALETTES } from './palettes.js';
 import { Tuner, STRINGS, noteName } from './tuner.js';
+import { ChordListener } from './listen.js';
 
 const $ = (s) => document.querySelector(s);
 const STORE = 'chord-compass:v1';
@@ -256,6 +257,7 @@ function setupStatic() {
 // Render: chords tab
 // ---------------------------------------------------------------------------
 function render() {
+  if (state.tab !== 'finder' && chordListener) stopListening();
   document.querySelectorAll('.tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === state.tab)));
   document.querySelectorAll('.tab').forEach((t) => t.toggleAttribute('data-active', t.id === `tab-${state.tab}`));
   $('#bpm').textContent = state.bpm;
@@ -702,7 +704,126 @@ function setFinderFret(s, f) {
   if (frets[s] !== null) note([40, 45, 50, 55, 59, 64][s] + frets[s]);
 }
 
+// ---------------------------------------------------------------------------
+// Listen: hear a strummed chord and name it
+// ---------------------------------------------------------------------------
+let chordListener = null;
+let heard = null; // { notes, candidates }
+let heardPick = 0;
+
+function stopListening() {
+  if (chordListener) chordListener.stop();
+  chordListener = null;
+  $('#fListen').textContent = '🎙 Listen';
+  $('#fListen').classList.remove('stop');
+  renderListen();
+}
+
+async function toggleListening() {
+  if (chordListener) { stopListening(); return; }
+  if (tuner) stopTuner();
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    heard = { error: 'This browser can’t use the microphone here.' };
+    renderListen();
+    return;
+  }
+  chordListener = new ChordListener(
+    (r) => { heard = r; heardPick = 0; renderListen(); },
+    (lvl) => { listenStatus = lvl; renderListen(); },
+  );
+  try {
+    await chordListener.start();
+    $('#fListen').textContent = '■ Stop';
+    $('#fListen').classList.add('stop');
+    listenStatus = 'waiting';
+    if (heard && heard.error) heard = null;
+    renderListen();
+  } catch (e) {
+    chordListener = null;
+    heard = { error: e && e.name === 'NotAllowedError'
+      ? 'Microphone permission was blocked. Allow it in your browser’s site settings, then try again.'
+      : 'Couldn’t start the microphone.' };
+    renderListen();
+  }
+}
+let listenStatus = 'waiting';
+
+const degreePcOf = (t) => ((degreeSemis(t) % 12) + 12) % 12;
+
+// A playable shape for a heard chord, with the same bass note if possible.
+function shapeFor(c, bassPc) {
+  const q = QUALITY_BY_ID[c.quality.id];
+  if (!q) return null;
+  const all = familiesFor(q).flatMap((f) => f.groups.map((g) => ({ fam: f.id, g })));
+  let best = null, bestCost = Infinity;
+  for (const { fam, g } of all) {
+    for (const v of buildGroup(c.root, q, g)) {
+      const low = Math.min(...v.pitches) % 12;
+      const cost = (low === bassPc ? 0 : 20) + Math.abs(v.avgFret - 5) + (fam === 'book' ? 0 : fam === 'caged' ? 1 : 2);
+      if (cost < bestCost) { bestCost = cost; best = v; }
+    }
+  }
+  return best;
+}
+
+function renderListen() {
+  const panel = $('#listenPanel');
+  if (!panel) return;
+  panel.hidden = !chordListener && !heard;
+  if (panel.hidden) return;
+  let html = '';
+  if (heard && heard.error) {
+    panel.innerHTML = `<p class="error">${heard.error}</p>`;
+    return;
+  }
+  if (chordListener) {
+    html += `<div class="lstatus ${listenStatus}">${listenStatus === 'hearing' ? '● Hearing…' : '🎙 Listening: strum a chord'}</div>`;
+  }
+  if (heard) {
+    const cands = heard.candidates;
+    const pick = cands[heardPick];
+    if (!pick) {
+      html += '<div class="lname muted">?</div><div class="lsub">Couldn’t name that. Strum again, a little louder, and let it ring.</div>';
+    } else {
+      const heardPcs = new Set(heard.notes.map((n) => n.midi % 12));
+      const bassPc = heard.notes.length ? Math.min(...heard.notes.map((n) => n.midi)) % 12 : null;
+      const names = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+      const rootPc = parseNote(pick.root).pc;
+      // Chord notes in chord order (R, 3, 5, 7…), like the name cards.
+      const chordTones = pick.quality.tones.filter((t) => heardPcs.has((rootPc + degreePcOf(t)) % 12));
+      const notes = chordTones;
+      const shown = chordTones.map((t) => `<span class="deg-${degreeFamily(t)}-text">${pretty(spellDegree(pick.root, t))}<small>${degreeLabel(t)}</small></span>`).join('');
+      const extra = [...heardPcs].filter((pc) => !pick.degrees.has(pc)).map((pc) => pretty(names[pc]));
+      html += `<div class="lhead">Heard</div><div class="lname">${pretty(candidateName(pick))}</div>
+        <div class="lsub">${pick.quality.name}${pick.inversion && pick.inversion !== 'Root position' ? ' · ' + pick.inversion : ''}</div>
+        <div class="rnotes" style="--n:${notes.length}">${shown}</div>
+        ${extra.length ? `<div class="lsub">Also heard: ${extra.join(', ')} (probably an overtone)</div>` : ''}`;
+      if (cands.length > 1) {
+        html += `<div class="lalt">Could also be: ${cands.map((c, i) => i === heardPick ? '' : `<button class="chip lchip" data-i="${i}">${pretty(candidateName(c))}</button>`).join('')}</div>`;
+      }
+      if (shapeFor(pick, bassPc)) html += '<button id="lShow" class="btn ghost">Show a shape on the diagram</button>';
+    }
+  }
+  panel.innerHTML = html;
+  panel.querySelectorAll('.lchip').forEach((b) => b.addEventListener('click', () => { heardPick = +b.dataset.i; renderListen(); }));
+  const show = panel.querySelector('#lShow');
+  if (show) {
+    show.addEventListener('click', () => {
+      const pick = heard.candidates[heardPick];
+      const bassPc = Math.min(...heard.notes.map((n) => n.midi)) % 12;
+      const v = shapeFor(pick, bassPc);
+      if (!v) return;
+      state.finder = { frets: [...v.frets], start: fitWindow(v.frets) };
+      finderPick = 0;
+      save();
+      renderFinder();
+      strum(v.pitches);
+    });
+  }
+}
+
 function setupFinder() {
+  $('#fListen').addEventListener('click', toggleListening);
   $('#finderBoard').addEventListener('click', (e) => {
     const r = e.target.closest('.hit');
     if (!r) return;
@@ -830,6 +951,7 @@ function tunerOpen() { return !$('#tuner').hidden; }
 
 function openTuner() {
   if (tunerOpen()) return;
+  if (chordListener) stopListening();
   $('#tuner').hidden = false;
   history.pushState({ tab: state.tab, tuner: true }, '');
   renderTunerStrings(null);
@@ -937,7 +1059,7 @@ function setupTuner() {
   $('#closeTuner').addEventListener('click', () => closeTuner());
   $('#tuner').addEventListener('click', (e) => { if (e.target.id === 'tuner') closeTuner(); });
   $('#tStart').addEventListener('click', startTuner);
-  document.addEventListener('visibilitychange', () => { if (document.hidden && tuner) stopTuner(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && tuner) stopTuner(); if (document.hidden && chordListener) stopListening(); });
 }
 
 // Android Back / browser back: close the tuner first, otherwise go to the previous page.
