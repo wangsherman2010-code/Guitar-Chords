@@ -12,6 +12,30 @@ import { Tuner, STRINGS, noteName } from './tuner.js';
 import { ChordListener } from './listen.js';
 
 const $ = (s) => document.querySelector(s);
+
+// ---------------------------------------------------------------------------
+// Keep the screen on while the tuner, Listen or the metronome is running
+// (Screen Wake Lock API). Released as soon as nothing needs it.
+// ---------------------------------------------------------------------------
+const awakeFor = new Set();
+let wakeLock = null;
+async function syncWakeLock() {
+  try {
+    if (awakeFor.size && !wakeLock && 'wakeLock' in navigator && document.visibilityState === 'visible') {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } else if (!awakeFor.size && wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+    }
+  } catch { wakeLock = null; /* not supported or refused (e.g. battery saver) */ }
+}
+function keepAwake(reason, on) {
+  if (on) awakeFor.add(reason); else awakeFor.delete(reason);
+  syncWakeLock();
+}
+// The browser drops the lock when the app is hidden; take it again on return.
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncWakeLock(); });
 const STORE = 'chord-compass:v1';
 
 const defaults = {
@@ -175,6 +199,7 @@ function setupStatic() {
   $('#bpmUp').addEventListener('click', () => updBpm(4));
   $('#metroToggle').addEventListener('click', () => {
     const on = metro.toggle();
+    keepAwake('metronome', on);
     $('#metroToggle').textContent = on ? '■' : '▶';
     $('#barOpen').classList.toggle('running', on);
     $('#metroToggle').setAttribute('aria-label', on ? 'Stop metronome' : 'Start metronome');
@@ -712,6 +737,7 @@ let heard = null; // { notes, candidates }
 let heardPick = 0;
 
 function stopListening() {
+  keepAwake('listen', false);
   if (chordListener) chordListener.stop();
   chordListener = null;
   $('#fListen').textContent = '🎙 Listen';
@@ -737,6 +763,7 @@ async function toggleListening() {
   );
   try {
     await chordListener.start();
+    keepAwake('listen', true);
     $('#fListen').textContent = '■ Stop';
     $('#fListen').classList.add('stop');
     listenStatus = 'waiting';
@@ -970,6 +997,7 @@ function closeTuner({ fromBack = false } = {}) {
 }
 
 function stopTuner() {
+  keepAwake('tuner', false);
   if (tuner) tuner.stop();
   tuner = null;
   $('#tStart').textContent = '🎙 Start listening';
@@ -988,6 +1016,7 @@ async function startTuner() {
   if (tunerLock !== null) tuner.setLock(STRINGS[tunerLock].midi);
   try {
     await tuner.start();
+    keepAwake('tuner', true);
     $('#tStart').textContent = '■ Stop listening';
     $('#tStart').classList.add('on');
     $('#tMsg').textContent = 'Play one string…';
