@@ -775,9 +775,9 @@ function renderFinder() {
     const b = document.createElement('button');
     b.className = 'reading';
     b.setAttribute('aria-pressed', String(i === finderPick));
-    const notes = c.quality.tones
-      .filter((t) => !c.missing.includes(t))
-      .map((t) => `<span class="deg-${degreeFamily(t)}-text">${pretty(spellDegree(c.root, t))}<small>${degreeLabel(t)}</small></span>`).join(' ');
+    const shownTones = c.quality.tones.filter((t) => !c.missing.includes(t));
+    const notes = shownTones
+      .map((t) => `<span class="deg-${degreeFamily(t)}-text">${pretty(spellDegree(c.root, t))}<small>${degreeLabel(t)}</small></span>`).join('');
     const tags = [
       i === 0 && !c.rootless ? '<i class="tag best">Most likely</i>' : '',
       c.inversion !== 'Root position' && !c.rootless ? `<i class="tag">${c.inversion}</i>` : '',
@@ -785,7 +785,7 @@ function renderFinder() {
       c.rootless ? `<i class="tag">rootless: root ${pretty(c.root)} implied</i>` : '',
     ].join('');
     b.innerHTML = `<div class="rname">${pretty(candidateName(c))}</div>
-      <div class="rsub">${c.quality.name}</div><div class="rnotes">${notes}</div><div class="rtags">${tags}</div>`;
+      <div class="rsub">${c.quality.name}</div><div class="rnotes${shownTones.length > 5 ? ' many' : ''}" style="--n:${shownTones.length}">${notes}</div><div class="rtags">${tags}</div>`;
     b.addEventListener('click', () => { finderPick = i; renderFinder(); });
     out.append(b);
   });

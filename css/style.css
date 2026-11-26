@@ -341,8 +341,13 @@ body.bar-collapsed .fab { display: flex; }
 .reading[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; background: var(--card); }
 .reading .rname { font-size: 1.35rem; font-weight: 800; }
 .reading .rsub { color: var(--muted); font-size: 0.85rem; }
-.reading .rnotes { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; font-weight: 700; }
-.reading .rnotes small { font-size: 0.72rem; margin-left: 2px; opacity: 0.9; }
+.reading .rnotes {
+  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); max-width: calc(var(--n, 4) * 75px);
+  margin: 10px 0 2px; text-align: center;
+}
+.reading .rnotes span { display: flex; flex-direction: column; align-items: center; font-size: 2rem; font-weight: 800; line-height: 1.05; }
+.reading .rnotes small { font-size: 0.85rem; font-weight: 700; margin-top: 3px; }
+.reading .rnotes.many span { font-size: 1.5rem; }
 .reading .rtags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .tag { font-style: normal; font-size: 0.74rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--line); color: var(--ink); }
 .tag.best { background: var(--accent); color: var(--accent-ink); }
