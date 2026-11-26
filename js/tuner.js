@@ -154,7 +154,23 @@ export class Tuner {
 
     const target = this.lockMidi ?? this.focusMidi;
     // Low volume gate: the quiet tail of a note is the steadiest part to tune to.
-    const r = detectPitch(buf, sr, target !== null ? rangeAround(target) : null, 0.0015);
+    let r = detectPitch(buf, sr, target !== null ? rangeAround(target) : null, 0.0015);
+    // Octave check (automatic mode): a reading far from every string whose
+    // half (or third) pitch sits right on a string is an overtone, e.g. the
+    // D string heard as D4. Measure again around that string.
+    if (r && target === null) {
+      const m = freqToMidi(r.freq);
+      const dist = (x) => Math.abs(x - this.nearestString(x));
+      if (dist(m) > 0.75) {
+        for (const div of [2, 3]) {
+          const sub = m - 12 * Math.log2(div);
+          if (sub >= STRINGS[0].midi - 1 && dist(sub) < 0.5) {
+            const again = detectPitch(buf, sr, rangeAround(this.nearestString(sub)), 0.0015);
+            if (again && again.clarity > 0.6) { r = again; break; }
+          }
+        }
+      }
+    }
     const minClarity = target !== null ? 0.8 : 0.9;
     if (r && r.clarity > minClarity && r.freq > 60 && r.freq < 1100) {
       const midi = freqToMidi(r.freq);

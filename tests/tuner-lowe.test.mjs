@@ -48,3 +48,30 @@ test('focused search also works on the high strings', () => {
     assert.ok(Math.abs(centsOff(r, midi)) < 3, `${midi}: ${centsOff(r, midi).toFixed(1)}`);
   }
 });
+
+test('D string with a strong 2nd harmonic is not read as D4 (octave check)', async () => {
+  const { Tuner } = await import('../js/tuner.js');
+  const frame = (t0) => {
+    const f = 146.83, amps = [0.15, 1, 0.15, 0.6, 0.1, 0.3], n = 8192, sr = 48000, b = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const t = t0 + i / sr; let v = 0; amps.forEach((a, h) => { v += a * Math.sin(2 * Math.PI * f * (h + 1) * t + h); }); b[i] = 0.05 * v * Math.exp(-t / 2); }
+    return b;
+  };
+  const readings = [];
+  const tu = new Tuner((r) => r && readings.push(r.freq));
+  for (let k = 0; k < 10; k++) tu.process(decimate2(frame(k * 0.07), new Float32Array(4096)), 24000, k * 70);
+  assert.ok(readings.length > 5);
+  for (const f of readings) assert.ok(Math.abs(freqToMidi(f) - 50) < 0.1, `read ${f.toFixed(1)} Hz`);
+});
+
+test('a real high e string stays on the e string', async () => {
+  const { Tuner } = await import('../js/tuner.js');
+  const frame = (t0) => {
+    const f = 329.63, n = 8192, sr = 48000, b = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const t = t0 + i / sr; b[i] = 0.05 * (Math.sin(2 * Math.PI * f * t) + 0.5 * Math.sin(4 * Math.PI * f * t)) * Math.exp(-t / 2); }
+    return b;
+  };
+  const readings = [];
+  const tu = new Tuner((r) => r && readings.push(r.freq));
+  for (let k = 0; k < 10; k++) tu.process(decimate2(frame(k * 0.07), new Float32Array(4096)), 24000, k * 70);
+  for (const f of readings) assert.ok(Math.abs(freqToMidi(f) - 64) < 0.1, `read ${f.toFixed(1)} Hz`);
+});
