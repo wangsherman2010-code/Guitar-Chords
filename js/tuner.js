@@ -89,12 +89,8 @@ export function decimate2(src, dst) {
 }
 
 export class Tuner {
-  // options.stringFocus=false: follow any note (for the Tutor's note checks)
-  // instead of locking onto the nearest open string.
-  constructor(onReading, { stringFocus = true, historyLen = 7 } = {}) {
+  constructor(onReading) {
     this.onReading = onReading; // ({ freq, midi } | null)
-    this.stringFocus = stringFocus;
-    this.historyLen = historyLen;
     this.history = [];
     this.lastHeard = 0;
     this.lockMidi = null; // string chosen by the user
@@ -154,7 +150,6 @@ export class Tuner {
       this.history = [];
       if (this.lockMidi === null) { this.focusMidi = null; this.streak = { midi: null, count: 0 }; }
     }
-    if (!this.stringFocus) this.focusMidi = null;
     if (now < this.ignoreUntil) { this.lastHeard = now; return; }
 
     const target = this.lockMidi ?? this.focusMidi;
@@ -163,7 +158,7 @@ export class Tuner {
     // Octave check (automatic mode): a reading far from every string whose
     // half (or third) pitch sits right on a string is an overtone, e.g. the
     // D string heard as D4. Measure again around that string.
-    if (r && target === null && this.stringFocus) {
+    if (r && target === null) {
       const m = freqToMidi(r.freq);
       const dist = (x) => Math.abs(x - this.nearestString(x));
       if (dist(m) > 0.75) {
@@ -180,13 +175,13 @@ export class Tuner {
     if (r && r.clarity > minClarity && r.freq > 60 && r.freq < 1100) {
       const midi = freqToMidi(r.freq);
       // Auto mode: after 3 readings on the same string, stay focused on it.
-      if (this.stringFocus && this.lockMidi === null && this.focusMidi === null) {
+      if (this.lockMidi === null && this.focusMidi === null) {
         const st = this.nearestString(midi);
         this.streak = this.streak.midi === st ? { midi: st, count: this.streak.count + 1 } : { midi: st, count: 1 };
         if (this.streak.count >= 3) this.focusMidi = st;
       }
       this.history.push(r.freq);
-      if (this.history.length > this.historyLen) this.history.shift();
+      if (this.history.length > 7) this.history.shift();
       const sorted = [...this.history].sort((x, y) => x - y);
       const freq = sorted[Math.floor(sorted.length / 2)]; // median: steadier needle
       this.lastHeard = now;

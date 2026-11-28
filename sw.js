@@ -2,10 +2,10 @@
 // App files (HTML/JS/CSS): network first, so a phone that's online always gets
 // one consistent, up-to-date version; the cache is only the offline fallback.
 // Guitar samples: cache first (they never change).
-const VERSION = 'cc-v23';
+const VERSION = 'cc-v24';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
-  'js/app.js', 'js/theory.js', 'js/voicings.js', 'js/render.js', 'js/audio.js', 'js/lessons.js', 'js/palettes.js', 'js/identify.js', 'js/tuner.js', 'js/listen.js', 'js/tutor.js', 'js/course.js', 'js/backing.js',
+  'js/app.js', 'js/theory.js', 'js/voicings.js', 'js/render.js', 'js/audio.js', 'js/lessons.js', 'js/palettes.js', 'js/identify.js', 'js/tuner.js', 'js/listen.js',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
 ];
 
