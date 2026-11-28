@@ -63,6 +63,9 @@ const defaults = {
 
 let state = { ...defaults };
 try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch { /* storage unavailable */ }
+// A page that no longer exists (e.g. the removed Tutor) falls back to Chords.
+if (!document.getElementById(`tab-${state.tab}`)) state.tab = 'chords';
+delete state.tutor;
 let selected = null; // currently highlighted voicing (not persisted)
 
 function save() {
