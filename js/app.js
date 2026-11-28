@@ -10,6 +10,7 @@ import { LESSONS, PROGRESSIONS } from './lessons.js';
 import { PALETTES } from './palettes.js';
 import { Tuner, STRINGS, noteName } from './tuner.js';
 import { ChordListener } from './listen.js';
+import { initTutor, renderTutor, stopTutorAudio, tutorHandlePop } from './tutor.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -59,6 +60,7 @@ const defaults = {
   palette: 'jazz',
   barOpen: false,
   finder: { frets: [null, 3, 2, 0, 1, 0], start: 1 },
+  tutor: { done: {}, step: {}, checks: {}, open: null },
 };
 
 let state = { ...defaults };
@@ -283,6 +285,7 @@ function setupStatic() {
 // ---------------------------------------------------------------------------
 function render() {
   if (state.tab !== 'finder' && chordListener) stopListening();
+  if (state.tab !== 'tutor') stopTutorAudio();
   document.querySelectorAll('.tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === state.tab)));
   document.querySelectorAll('.tab').forEach((t) => t.toggleAttribute('data-active', t.id === `tab-${state.tab}`));
   $('#bpm').textContent = state.bpm;
@@ -294,6 +297,7 @@ function render() {
   if (state.tab === 'chords') renderChords();
   if (state.tab === 'lead') renderLead();
   if (state.tab === 'finder') renderFinder();
+  if (state.tab === 'tutor') renderTutor();
 }
 
 function renderChords() {
@@ -984,6 +988,7 @@ function tunerOpen() { return !$('#tuner').hidden; }
 function openTuner() {
   if (tunerOpen()) return;
   if (chordListener) stopListening();
+  stopTutorAudio();
   $('#tuner').hidden = false;
   history.pushState({ tab: state.tab, tuner: true }, '');
   renderTunerStrings(null);
@@ -1093,12 +1098,13 @@ function setupTuner() {
   $('#closeTuner').addEventListener('click', () => closeTuner());
   $('#tuner').addEventListener('click', (e) => { if (e.target.id === 'tuner') closeTuner(); });
   $('#tStart').addEventListener('click', startTuner);
-  document.addEventListener('visibilitychange', () => { if (document.hidden && tuner) stopTuner(); if (document.hidden && chordListener) stopListening(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && tuner) stopTuner(); if (document.hidden && chordListener) stopListening(); if (document.hidden) stopTutorAudio(); });
 }
 
 // Android Back / browser back: close the tuner first, otherwise go to the previous page.
 window.addEventListener('popstate', (e) => {
   if (tunerOpen()) { closeTuner({ fromBack: true }); return; }
+  if (tutorHandlePop(e)) return;
   const tabName = e.state && e.state.tab;
   if (tabName && tabName !== state.tab) {
     navigatingBack = true;
@@ -1109,6 +1115,7 @@ window.addEventListener('popstate', (e) => {
 });
 
 // ---------------------------------------------------------------------------
+initTutor({ state, save, keepAwake, pretty, toast });
 setupStatic();
 setupFinder();
 setupTuner();

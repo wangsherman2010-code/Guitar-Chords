@@ -68,7 +68,7 @@ export function chordDiagram(v, root, mode = 'degree') {
 // ---------------------------------------------------------------------------
 // Horizontal fretboard map with every chord tone (and optional scale overlay).
 // ---------------------------------------------------------------------------
-export function fretboard({ root, tones, hidden = new Set(), mode = 'degree', voicing = null, scale = null, frets = 15, lefty = false }) {
+export function fretboard({ root, tones, hidden = new Set(), mode = 'degree', voicing = null, scale = null, frets = 15, lefty = false, onlyStrings = null, window: win = null }) {
   const left = 58, top = 18, fw = 52, sh = 26;
   const W = left + fw * (frets + 0.6) + 10;
   const H = top + sh * 5 + 34;
@@ -106,8 +106,15 @@ export function fretboard({ root, tones, hidden = new Set(), mode = 'degree', vo
 
   const inVoicing = (s, f) => voicing && voicing.frets[s] === f;
 
+  // Highlight a hand position (fret window) for lessons.
+  if (win) {
+    const x1 = xAt(win[0]) - fw / 2, x2 = xAt(win[1]) + fw / 2;
+    g.insertBefore(el('rect', { x: Math.min(x1, x2), y: top - 12, width: Math.abs(x2 - x1), height: sh * 5 + 24, rx: 8, class: 'poswin' }), g.firstChild);
+  }
   for (let s = 0; s < 6; s++) {
     for (let f = 0; f <= frets; f++) {
+      if (onlyStrings && !onlyStrings.includes(s)) continue;
+      if (win && (f < win[0] || f > win[1])) continue;
       const pc = (TUNING[s] + f) % 12;
       const t = byPc.get(pc);
       const x = xAt(f), y = yAt(s);

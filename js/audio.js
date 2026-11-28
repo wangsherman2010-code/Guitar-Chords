@@ -272,3 +272,25 @@ export class Metronome {
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Low-level scheduling for the Tutor's backing tracks.
+// ---------------------------------------------------------------------------
+export function audioTime() { return audio().currentTime; }
+export function playNoteAt(midi, when, gain = 0.6, dur = 1.5) { playAt(midi, when, gain, dur); }
+export const prepare = (pitches) => ready(pitches);
+
+// Soft brush-like tick (used on beats 2 and 4, and for the count-in).
+export function clickAt(when, accent = false) {
+  const c = audio();
+  const o = c.createOscillator();
+  const g = c.createGain();
+  o.type = 'triangle';
+  o.frequency.value = accent ? 1500 : 1100;
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(accent ? 0.25 : 0.12, when + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.04);
+  o.connect(g).connect(master);
+  o.start(when);
+  o.stop(when + 0.05);
+}

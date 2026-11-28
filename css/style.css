@@ -363,8 +363,8 @@ body.bar-collapsed .fab { display: flex; }
 .findername .fname.muted { color: var(--muted); }
 .findername .fsub { color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
 @media (max-width: 440px) {
-  .tabs { gap: 0; }
-  .tabs button { padding: 8px 9px 10px; font-size: 0.93rem; }
+  .tabs { gap: 0; justify-content: space-between; }
+  .tabs button { padding: 8px 4px 10px; font-size: 0.84rem; letter-spacing: -0.01em; }
 }
 
 /* ---------- tuner ---------- */
@@ -424,3 +424,58 @@ body.bar-collapsed .fab { display: flex; }
 .listenpanel .rnotes small { font-size: 0.8rem; font-weight: 700; margin-top: 3px; }
 .listenpanel .lalt { margin: 8px 0; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; align-items: center; color: var(--muted); font-size: 0.88rem; }
 .deg-none-text { color: var(--muted); }
+
+.board .poswin { fill: color-mix(in srgb, var(--accent) 10%, transparent); stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; }
+
+/* ---------- tutor ---------- */
+.lessoncard { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; width: 100%; text-align: left; background: var(--chip);
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; }
+.lessoncard .lvl { grid-column: 1; font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.lessoncard b { grid-column: 1; font-size: 1.02rem; }
+.lessoncard .goal { grid-column: 1; color: var(--muted); font-size: 0.86rem; }
+.lessoncard .status { grid-column: 2; grid-row: 1 / span 3; align-self: center; font-size: 0.8rem; font-weight: 700; color: var(--accent);
+  background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+.lessoncard.done .status { color: var(--seventh); }
+.lessoncard.soon { opacity: .55; cursor: default; }
+.lessoncard.soon .status { color: var(--muted); }
+.lessonhead .lvl { font-size: 0.78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 8px; }
+.lessonhead h2 { margin: 2px 0; }
+.stepbar { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+.stepdot { width: 22px; height: 8px; border-radius: 4px; border: 0; background: var(--line); cursor: pointer; padding: 0; }
+.stepdot.past { background: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.stepdot.on { background: var(--accent); }
+.stepcount { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+.steptext p, .steptext li { line-height: 1.55; }
+.steptext ul { padding-left: 20px; }
+.stepnav { display: flex; justify-content: space-between; gap: 10px; margin: 0 0 16px; }
+.stepnav .btn { flex: 1; padding: 12px; }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn.stop { background: var(--root); color: #fff; }
+.backing { background: var(--chip); border-radius: 12px; padding: 10px 12px; margin: 6px 0; }
+.chordstrip { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.chordcell { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-weight: 800; font-size: 1.05rem; }
+.chordcell small { font-weight: 600; color: var(--muted); margin-left: 3px; font-size: .75rem; }
+.chordcell.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chordcell.on small { color: inherit; }
+.backingrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tempo { display: flex; align-items: center; gap: 6px; }
+.bpmval { min-width: 64px; text-align: center; }
+.backing .hint { margin: 6px 0 0; font-size: 0.8rem; }
+.tips { padding-left: 20px; margin: 8px 0; }
+.tips li { margin-bottom: 4px; }
+.tonemap .maplabel { margin: 8px 0 4px; font-size: 0.95rem; }
+.targets { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 4px; }
+.target { padding: 8px 14px; border-radius: 10px; background: var(--chip); border: 1px solid var(--line); font-weight: 800; font-size: 1.1rem; }
+.target.now { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+.target.ok { background: color-mix(in srgb, var(--seventh) 18%, var(--card)); border-color: var(--seventh); color: var(--seventh); }
+.feedback { min-height: 1.4em; font-weight: 600; }
+.exlist { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.exitem { text-align: left; background: var(--chip); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; cursor: pointer; font-weight: 600; }
+.exitem.now { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+.exitem.ok { color: var(--seventh); }
+.notesrow { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+.fnote { min-width: 40px; text-align: center; padding: 8px 6px; border-radius: 10px; background: var(--chip); border: 1px solid var(--line); font-weight: 800; font-size: 1.15rem; }
+.fnote.now { border-color: var(--third); box-shadow: 0 0 0 2px var(--third) inset; }
+.fnote.ok { background: color-mix(in srgb, var(--seventh) 18%, var(--card)); border-color: var(--seventh); color: var(--seventh); }
+.checkrow { border-bottom: 1px solid var(--line); padding: 8px 0; }
+.checkrow:last-child { border-bottom: 0; }
